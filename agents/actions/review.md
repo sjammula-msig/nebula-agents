@@ -69,6 +69,8 @@ Execute these review agents **in parallel**:
      - `kg.risk` ≥ 7 (high band) → require an additional reviewer beyond the PR author
      - `kg.risk` ≥ 9 (critical band) → require a `workstate.py decision --topic risk-acknowledgement` entry referenced from the PR before merge
      - Treat each `reviewer_recommendations[]` entry as a checklist item; weights/bands live in `agents/architect/references/risk-scoring-guide.md`
+   - Run `python3 {PRODUCT_ROOT}/scripts/kg/diff-impact.py <pr-range>` and attach the `affected_nodes` list to the review notes. Surface canonical nodes the PR description did not anticipate as a discussion item — not an auto-fail (new internal helpers can legitimately have zero callers until the calling code lands).
+   - For symbol *names* the diff introduces or moves, run `python3 {PRODUCT_ROOT}/scripts/kg/lookup.py --defines <name>` to detect duplicate or near-duplicate surface elsewhere in the codebase.
 
 4. **Produce code review report:**
    ```markdown

@@ -111,6 +111,8 @@ When documenting operations, include:
 Use writing guidance from:
 - `agents/technical-writer/references/writing-best-practices.md`
 
+When ontology coverage exists for the target subject, run `python3 {PRODUCT_ROOT}/scripts/kg/lookup.py --defines <name>` and `lookup.py --callers-only <symbol-id>` on the central canonical node to discover related capabilities, endpoints, and consumers the doc should reference. Raw source, ADRs, and API contracts still win on conflict.
+
 ## Documentation Workflow
 
 ### Step 1: Define Scope and Audience

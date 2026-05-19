@@ -137,7 +137,9 @@ Use `--file <repo-path>` to reverse-map an existing code file back into the onto
 Also run `python3 {PRODUCT_ROOT}/scripts/kg/lookup.py --symbol <function-name>`
 (or `hint.py --symbol <name>`) before editing a bound function — this returns
 the symbol record, callers, callees, and sibling symbols on the same canonical
-node, so the edit stays narrow and avoids re-reading the full file.
+node, so the edit stays narrow and avoids re-reading the full file. When only
+the caller set is needed, `lookup.py --callers-only <symbol-id>` returns the
+same edge set with no neighborhood/sibling context.
 
 **Tech Stack:**
 - Python 3.11+

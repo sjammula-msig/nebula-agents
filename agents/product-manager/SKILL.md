@@ -226,6 +226,7 @@ When ontology coverage exists for the target feature or story, run
 Use `--file <repo-path>` to reverse-map an existing code file back into the ontology.
 Treat ontology mappings as compressed retrieval context only; raw feature, glossary,
 ADR, API, and schema artifacts still win on conflict.
+When drafting a PRD, run `lookup.py --defines <central-name>` and `lookup.py --callers-only <central-symbol-id>` on the feature's central canonical node to discover existing capabilities, endpoints, and consumers the PRD should reference or supersede.
 
 **Templates:**
 - `agents/templates/feature-template.md` (PRD template)

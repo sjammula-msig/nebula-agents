@@ -111,6 +111,8 @@ When ontology coverage exists for the target feature or code path, run
 `python3 {PRODUCT_ROOT}/scripts/kg/lookup.py <feature-or-story-id>` or
 `python3 {PRODUCT_ROOT}/scripts/kg/lookup.py --file <repo-path>` before broader file reads.
 
+For each authorization or policy enforcement method (`role:*`, `policy_rule:*`, authentication services, session/token handlers), run `python3 {PRODUCT_ROOT}/scripts/kg/lookup.py --callers-only <symbol-id>` to enumerate every reachable caller. Any endpoint or workflow that should be protected but does not appear in the callers set is a coverage gap and a security finding — surface in the review with the missing caller path.
+
 Use these references as needed:
 - `agents/security/references/security-best-practices.md`
 - `agents/security/references/threat-modeling-guide.md`

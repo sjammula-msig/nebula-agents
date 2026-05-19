@@ -304,6 +304,7 @@ Phase 3: Implementation (Generate Configs)
 When ontology coverage exists for the target feature or story, run
 `python3 {PRODUCT_ROOT}/scripts/kg/lookup.py <feature-or-story-id>` before broad repo reads.
 Use `--file <repo-path>` to reverse-map an existing code file back into the ontology.
+Pre-deploy, run `python3 {PRODUCT_ROOT}/scripts/kg/diff-impact.py <release-range>` and attach `affected_nodes` + `blast_symbols` to the change-management note so reviewers see which surfaces moved.
 
 **Runtime Stack Baseline:**
 - Keep deployments open-source by default (Docker, Compose, GitHub Actions/GitLab CI, PostgreSQL, Prometheus/Grafana/Loki).
