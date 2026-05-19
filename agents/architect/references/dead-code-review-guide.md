@@ -2,8 +2,8 @@
 
 The knowledge graph answers "what's covered" through canonical nodes, feature
 mappings, code-index bindings, and the symbol layer. This guide covers the
-inverse question: **what has drifted, or is dead?** Two complementary checks
-close that loop:
+inverse question: **what has drifted, or is dead?** Three complementary
+checks close that loop:
 
 - **Ontology orphans** — canonical nodes that nothing else references and that
   have no code-index binding. Surfaced by
@@ -11,8 +11,20 @@ close that loop:
 - **Code dead-code candidates** — bound symbols not reachable from any
   declared entry point. Surfaced by
   `python3 {PRODUCT_ROOT}/scripts/kg/dead-code.py`.
+- **Code-index coverage gaps** — invocations from files outside
+  `code-index.yaml` bindings that target bound symbols. The sidecar
+  `planning-mds/knowledge-graph/unbound-but-referenced.yaml` is the
+  substrate; surfaced by `python3 {PRODUCT_ROOT}/scripts/kg/validate.py
+  --check-coverage-gaps` and the ad-hoc projection
+  `python3 {PRODUCT_ROOT}/scripts/kg/coverage-gaps.py`.
 
-Both are routing aids for release-readiness cleanup. Per
+The three checks attack the same underlying drift from different sides:
+orphans see *unbound canonical nodes*, dead-code sees *unreached bound
+symbols*, and coverage-gaps sees *unbound source files invoking bound
+symbols*. A dead-code false positive driven by a missing `code-index.yaml`
+binding usually appears in the coverage-gaps sidecar already.
+
+All three are routing aids for release-readiness cleanup. Per
 `solution-ontology.yaml.authority.precedence`, raw source files remain
 authoritative — these reports nominate cleanup candidates; humans confirm
 removal.
@@ -23,13 +35,16 @@ removal.
 
 | Cadence | Owner | Command |
 |---|---|---|
-| Release-readiness checkpoint | Architect | `validate.py --check-orphans` + `dead-code.py --safe-only` |
-| Feature close | Backend / frontend / ai engineer | `dead-code.py --node <touched-node>` to confirm no new orphans introduced |
+| Release-readiness checkpoint | Architect | `validate.py --check-orphans` + `dead-code.py --safe-only` + `validate.py --check-coverage-gaps` |
+| Feature close | Backend / frontend / ai engineer | `dead-code.py --node <touched-node>` to confirm no new orphans introduced; spot-check `coverage-gaps.py --by-target` if the feature adds new public surface |
 | ADR creation | Architect | `validate.py --check-orphans` — confirm the new ADR has at least one rationale link, otherwise it ships as an orphan |
-| Before deleting code | Anyone | `dead-code.py --min-confidence 0.85 --node <node>` to confirm the deletion candidate is unreached |
+| Before deleting code | Anyone | `dead-code.py --min-confidence 0.85 --node <node>` to confirm the deletion candidate is unreached, **then** `coverage-gaps.py --by-target` to confirm no unbound caller would break |
 
-`kg_orphan_check` in `agents/templates/lifecycle-stage-template.yaml` wires
-the orphan command into the release-readiness gate.
+Two release-readiness gates in `agents/templates/lifecycle-stage-template.yaml`
+wire these into the lifecycle: `kg_orphan_check` runs the orphan + dead-code
+sweep; `kg_coverage_gap_check` runs the unbound-source sweep. Both default
+to warn so a first run doesn't drown reviewers; products opt into errors
+with `--orphans-as-errors` / `--coverage-gaps-as-errors`.
 
 ---
 
@@ -143,14 +158,22 @@ Call-edge resolution is per-language (see [symbol-index-guide.md](symbol-index-g
   blind spot is **code-index coverage**: a calling file that isn't
   bound in `code-index.yaml` is never parsed, so its invocations don't
   appear in the call graph. When a method looks dead, first verify
-  every caller file is bound.
-- **TypeScript** and **Python** — name-matched within the same canonical
-  node only. Cross-node calls are invisible to the walk. The confidence
-  dampers compensate by lowering the score when a symbol's node has
+  every caller file is bound. The compilation/emission split
+  (compilation-root files outside the bound set still contribute to
+  semantic resolution and feed `unbound-but-referenced.yaml`) shrinks
+  but does not eliminate this blind spot — file additions outside
+  the compilation root remain invisible until added.
+- **TypeScript** — semantically resolved via ts-morph
+  `getExpression().getSymbol()` since the Phase A2 upgrade. Cross-node
+  calls and class `implements`/`extends` heritage are tracked. Behaves
+  like C# for triage purposes.
+- **Python** — name-matched within the same canonical node only.
+  Cross-node calls are invisible to the walk. The confidence dampers
+  compensate by lowering the score when a symbol's node has
   feature-mapping refs that could carry an untracked cross-node flow,
-  but some genuine false positives remain. Upgrading these extractors
-  to emit semantically-resolved calls is the same kind of work as the
-  C# Roslyn integration.
+  but some genuine false positives remain. The semantic-engine swap
+  (Jedi or Pyright) is deferred until a product acquires enough Python
+  surface to measure resolution accuracy meaningfully.
 
 The triage rubric below explains how to recognize each class of false
 positive.
@@ -165,19 +188,29 @@ For each candidate, ask in order:
    pattern list missed?** (e.g., `RegisterRoutes`, `OnModelCreating`,
    `BuildContainer`). If yes, extend `FRAMEWORK_ENTRY_NAME_SUFFIXES` or
    `FRAMEWORK_ENTRY_FILE_PATTERNS` in `scripts/kg/symbols.py` and re-run.
-2. **For C#: is every file that could call this symbol bound in
+2. **Does the coverage-gaps sidecar know about this symbol?** Run
+   `python3 {PRODUCT_ROOT}/scripts/kg/coverage-gaps.py --by-target` and
+   look for the candidate symbol id in the output. If it appears, the
+   sidecar already located one or more unbound caller files — bind
+   them in `code-index.yaml` and regenerate. The sidecar is the
+   automated form of the grep step below; it produces zero noise from
+   matches inside string literals or comments.
+3. **For C#/TS: is every file that could call this symbol bound in
    `code-index.yaml`?** Grep the codebase for the method name. If a
-   caller file shows up but isn't in `code-index.yaml`, the Roslyn
-   extractor never parsed it. Add the caller file to the appropriate
-   canonical node binding and regenerate. (This is the most common C#
-   false-positive class now that semantic resolution is in place.)
-3. **For TS/Python: does any file call this symbol from a different
+   caller file shows up but isn't in `code-index.yaml` and the sidecar
+   missed it (most often: the file lives outside the configured
+   compilation root, so the semantic resolver never saw the invocation),
+   add the file to the appropriate canonical-node binding and
+   regenerate. Grep remains the fallback when the sidecar's
+   compilation-root walk doesn't reach the suspect path.
+4. **For Python: does any file call this symbol from a different
    canonical node?** Same-node-resolution false positive. Either bind
    the calling file to the same canonical node, or record the symbol
    in a per-product ignore list referenced from a product ADR.
-4. **Is the symbol genuinely unused?** Delete it. Re-run
-   `python3 {PRODUCT_ROOT}/scripts/kg/symbols.py` + `dead-code.py` to confirm
-   the report shrinks.
+5. **Is the symbol genuinely unused?** Confirm `coverage-gaps.py
+   --by-target` shows zero entries for it, then delete. Re-run
+   `python3 {PRODUCT_ROOT}/scripts/kg/symbols.py` + `dead-code.py` to
+   confirm the report shrinks.
 
 ---
 
@@ -188,24 +221,24 @@ For each candidate, ask in order:
 | `policy_rule:order-export` is an orphan: no feature `enforced_by_policy` references it, and no code-index binding exists | Remove the node — premature. The next feature that needs export policy can re-add it. |
 | `adr:042` is an orphan: no canonical node lists it under `rationale.adr` | Add a `rationale:` entry on the node the ADR actually governs (e.g., `entity:order`). The ADR is the source of truth; the rationale link is what makes it discoverable. |
 | `entity:order-attachment` is an orphan but a planned feature folder under `planning-mds/features/F0044-order-attachments/` exists | Add the feature to `feature-mappings.yaml.coverage.excluded_features` until the feature is implemented; the orphan disappears. |
-| `dead-code.py` reports `CustomerService.GetByExternalIdAsync` at confidence 0.9; grep shows it called from `OrderImportEndpoints.cs` (different node), and that file is missing from `code-index.yaml` | Code-index coverage gap. Add `OrderImportEndpoints.cs` to the appropriate canonical-node binding (typically `entity:customer` or the endpoint's own node) and regenerate. The Roslyn extractor will resolve the call on the next run. |
-| `dead-code.py` reports a TS service method at confidence 0.9; grep shows it called from a different canonical node's file | Same-node-resolution limitation (TS extractor doesn't emit semantic types yet). Either bind the caller into the same canonical node, or add a per-product ignore entry. |
-| `dead-code.py` reports `LegacyOrderReceiptFormatter.Format` at confidence 0.9; grep shows zero references | Genuine dead code. Delete the file. Re-run `symbols.py`. |
+| `dead-code.py` reports `CustomerService.GetByExternalIdAsync` at confidence 0.9; `coverage-gaps.py --by-target` shows it called from `OrderImportEndpoints.cs`, and that file is missing from `code-index.yaml` | Code-index coverage gap. Add `OrderImportEndpoints.cs` to the appropriate canonical-node binding (typically `entity:customer` or the endpoint's own node) and regenerate. The sidecar surfaced the missing binding without grep; the next run resolves the call. |
+| `dead-code.py` reports a Python service method at confidence 0.9; grep shows it called from a different canonical node's file | Same-node-resolution limitation (Python extractor emits bare names; the semantic-engine swap is deferred). Either bind the caller into the same canonical node, or add a per-product ignore entry. |
+| `dead-code.py` reports `LegacyOrderReceiptFormatter.Format` at confidence 0.9; both `coverage-gaps.py --by-target` and grep show zero references | Genuine dead code. Delete the file. Re-run `symbols.py`. |
 
 ---
 
 ## Telemetry
 
-Both CLIs emit JSONL telemetry events via `kg_common.emit_telemetry`. Key
-fields:
+All four CLIs emit JSONL telemetry events via `kg_common.emit_telemetry`.
+Key fields:
 
-| Field | `validate.py --check-orphans` | `dead-code.py` |
-|---|---|---|
-| `tool` | `validate` | `dead-code` |
-| `orphan_count` / `candidates_count` | yes | yes |
-| `nodes_returned` / `nodes_count` | orphaned node ids | nodes hosting candidates |
-| `confidence_band` | `high` if any orphans, else `low` | same |
-| `tokens_estimated` | yes | yes |
+| Field | `validate.py --check-orphans` | `validate.py --check-coverage-gaps` | `dead-code.py` | `coverage-gaps.py` |
+|---|---|---|---|---|
+| `tool` | `validate` | `validate` | `dead-code` | `coverage-gaps` |
+| `orphan_count` / `kept` / `candidates_count` | yes | `kept` (after exclusions) | yes | `after_filter` |
+| `nodes_returned` / `nodes_count` | orphaned node ids | target nodes hit by unbound callers | nodes hosting candidates | target nodes hit |
+| `confidence_band` | `high` if any orphans, else `low` | `high` if any kept findings | high/low by candidate count | high/low |
+| `tokens_estimated` | yes | yes | yes | yes |
 
 `eval.py` scores these against scenario fixtures the same way it scores
 `lookup.py` and `hint.py`.
@@ -216,7 +249,8 @@ fields:
 
 | Gate | Relationship |
 |---|---|
-| `symbol_index_sync` | Must pass before `kg_orphan_check` is meaningful — orphan and dead-code reports assume the symbol layer is in sync |
+| `symbol_index_sync` | Must pass before `kg_orphan_check` or `kg_coverage_gap_check` is meaningful — every downstream report assumes the symbol layer (and the sidecar regenerated alongside it) is in sync |
+| `kg_coverage_gap_check` | Pairs with `kg_orphan_check` at release readiness. Coverage gaps usually explain a fraction of dead-code candidates; clearing them first shrinks the dead-code triage list |
 | `inline_decisions_check` | Independent; a decision marker on an orphan node is its own signal that the node was intended to be reached |
 | `boundary_genericness` | Independent; orphan detection is framework-generic and never names solution concepts |
 | Risk scoring (`risk.py`) | Independent; a node with high `kg.risk` and an orphan child symbol is a stronger signal than either in isolation, but no automated rule combines them |
