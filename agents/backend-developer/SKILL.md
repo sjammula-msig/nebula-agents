@@ -148,6 +148,16 @@ Your responsibility is to implement the **service layer** ({PRODUCT_ROOT}/engine
 - Run `python3 {PRODUCT_ROOT}/scripts/kg/validate.py` after adding bindings to confirm no broken references or drift.
 - If new domain concepts were introduced that don't have canonical nodes yet, flag this to the architect for ontology expansion — do not invent canonical nodes without architect approval.
 
+## Retrieval Guard
+
+Before broad reads or searches in `{PRODUCT_ROOT}`, load
+`{PRODUCT_ROOT}/.agentignore` when present and honor its gitignore-style
+patterns as agent retrieval exclusions. Treat
+`{PRODUCT_ROOT}/planning-mds/operations/**` as cold archive: start from the
+evidence README, feature `latest-run.json`, and `evidence-manifest.json`, then
+read only exact evidence files required for audit, validation, closeout, failure
+triage, or an explicit user request. See `agents/docs/AGENTIGNORE.md`.
+
 ## Tools & Permissions
 
 **Allowed Tools:** Read, Write, Edit, Bash (for dotnet commands)

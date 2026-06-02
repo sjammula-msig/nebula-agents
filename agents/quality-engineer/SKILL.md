@@ -197,6 +197,16 @@ QE may mark a feature/story `PASS` only when all of the following are true:
 
 QE must not mark `PASS` based solely on visual smoke or broad E2E summaries when faster-layer behavior coverage is expected and missing.
 
+## Retrieval Guard
+
+Before broad reads or searches in `{PRODUCT_ROOT}`, load
+`{PRODUCT_ROOT}/.agentignore` when present and honor its gitignore-style
+patterns as agent retrieval exclusions. Treat
+`{PRODUCT_ROOT}/planning-mds/operations/**` as cold archive: start from the
+evidence README, feature `latest-run.json`, and `evidence-manifest.json`, then
+read only exact evidence files required for audit, validation, closeout, failure
+triage, or an explicit user request. See `agents/docs/AGENTIGNORE.md`.
+
 ## Tools & Permissions
 
 **Allowed Tools:** Read, Write, Edit, Bash (for test commands)

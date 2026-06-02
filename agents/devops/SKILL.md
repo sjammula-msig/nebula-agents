@@ -291,6 +291,16 @@ Phase 3: Implementation (Generate Configs)
 - Maintain architecture diagrams
 - Document disaster recovery procedures
 
+## Retrieval Guard
+
+Before broad reads or searches in `{PRODUCT_ROOT}`, load
+`{PRODUCT_ROOT}/.agentignore` when present and honor its gitignore-style
+patterns as agent retrieval exclusions. Treat
+`{PRODUCT_ROOT}/planning-mds/operations/**` as cold archive: start from the
+evidence README, feature `latest-run.json`, and `evidence-manifest.json`, then
+read only exact evidence files required for audit, validation, closeout, failure
+triage, or an explicit user request. See `agents/docs/AGENTIGNORE.md`.
+
 ## Tools & Permissions
 
 **Allowed Tools:** Read, Write, Edit, Bash (for Docker, deployment commands)

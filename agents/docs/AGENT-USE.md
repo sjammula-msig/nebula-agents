@@ -46,6 +46,18 @@ At session start, resolve `{PRODUCT_ROOT}` in this order:
 
 Echo the resolved absolute path back as the first agent turn's output before any shell command runs.
 
+### Honoring `.agentignore`
+
+After resolving `{PRODUCT_ROOT}`, check for `{PRODUCT_ROOT}/.agentignore`
+before broad product discovery. This file is a gitignore-style retrieval guard
+for agents, not a Git ignore file. Honor it for broad reads, globs, greps, and
+file-list operations. For product searches, prefer running from
+`{PRODUCT_ROOT}` with `rg --ignore-file .agentignore ...`.
+
+Bypass ignored paths only for explicit audit, validation, closeout, failure
+triage, or user-requested inspection, and then read exact files rather than
+whole folders. Full semantics live in `agents/docs/AGENTIGNORE.md`.
+
 ### What `{PRODUCT_ROOT}` prefixes
 
 Every reference from `agents/**` to product-owned paths uses the `{PRODUCT_ROOT}` placeholder. At baseline the placeholder prefixes all product-owned trees: `{PRODUCT_ROOT}/scripts/kg/...`, `{PRODUCT_ROOT}/planning-mds/...`, `{PRODUCT_ROOT}/engine/...`, `{PRODUCT_ROOT}/experience/...`, `{PRODUCT_ROOT}/neuron/...`, and `{PRODUCT_ROOT}/bruno/...`.
@@ -201,9 +213,11 @@ via `python3 agents/scripts/validate_templates.py`.
 Use these clauses when they apply:
 
 - `Before loading references, consult agents/ROUTER.md and load only the task-matched subset.`
+- `Before broad product discovery, load {PRODUCT_ROOT}/.agentignore if present and honor it as a gitignore-style agent retrieval guard.`
 - `Before searching code, run python3 {PRODUCT_ROOT}/scripts/kg/hint.py <path> to get KG routing context.`
 - `If ontology coverage exists, load the matching knowledge-graph entry before reading raw files.`
 - `Use ontology mappings as compressed retrieval context only; source artifacts win on conflict.`
+- `Treat {PRODUCT_ROOT}/planning-mds/operations/** as cold archive; start from evidence README, latest-run.json, and evidence-manifest.json, then read only exact files required by the task.`
 - `If shared solution semantics changed, repair ontology drift in the same change set.`
 - `Read the full feature folder at {PRODUCT_ROOT}/planning-mds/features/F{NNNN}-{slug}.`
 - `Where the feature-assembly-plan conflicts with raw story text, follow the feature-assembly-plan.`

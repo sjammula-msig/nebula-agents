@@ -157,6 +157,14 @@ Task-to-tool routing only. The full contract — package shape, gate timeline
 of who writes what when, manifest, `commands.log` telemetry, verdicts,
 eligibility, and waivers — lives in `agents/docs/AGENT-OPS.md`.
 
+Honor `{PRODUCT_ROOT}/.agentignore` before broad product discovery. Treat
+`{PRODUCT_ROOT}/planning-mds/operations/**` as cold archive: start from
+`operations/evidence/README.md`, feature `latest-run.json`, and the selected
+run's `evidence-manifest.json`; read raw reports, logs, screenshots, and
+`artifacts/**` only when the current audit, validation, or failure-triage task
+requires those exact files. Full retrieval semantics live in
+`agents/docs/AGENTIGNORE.md`.
+
 | When | Command |
 |------|---------|
 | Validate evidence mid-run (G0–G5) | `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature F#### --run-id <run-id> --stage <Gn>` |

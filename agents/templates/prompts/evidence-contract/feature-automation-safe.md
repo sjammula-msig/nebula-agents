@@ -45,7 +45,7 @@ SESSION_SETUP:
 - Create {RUN_FOLDER}/README.md, action-context.md, artifact-trace.md, gate-decisions.md from templates
 - Touch {RUN_FOLDER}/commands.log and {RUN_FOLDER}/lifecycle-gates.log (empty JSONL/log)
 - Capture prior approved {RUN_ID_PRIOR} if {FEATURE_INDEX_ROOT}/latest-run.json exists (for G8 supersession patch)
-- Concurrent-run check: scan `{PRODUCT_ROOT}/planning-mds/operations/evidence/runs/` for any run folder other than `{RUN_FOLDER}` whose `evidence-manifest.json` has `feature_id={FEATURE_ID}` and carries status="draft" or status="in-progress". If one exists, HALT and reconcile externally before proceeding; the v2 contract assumes serial feature actions per feature (§17). Acceptable states for prior runs: status="approved" with prior-run supersession handled at G8, status="superseded", or no prior runs at all.
+- Concurrent-run check: inspect only `evidence-manifest.json` files under `{PRODUCT_ROOT}/planning-mds/operations/evidence/runs/*/` for any run other than `{RUN_FOLDER}` whose manifest has `feature_id={FEATURE_ID}` and carries status="draft" or status="in-progress". If one exists, HALT and reconcile externally before proceeding; the v2 contract assumes serial feature actions per feature (§17). Acceptable states for prior runs: status="approved" with prior-run supersession handled at G8, status="superseded", or no prior runs at all.
 - All paths and commands below assume the above resolution and run folder
 
 TIER DEFAULTS (start_tier, max_auto_tier; selected by MODE):

@@ -77,13 +77,15 @@ Load in this order when the work is feature-scoped:
 6. `{PRODUCT_ROOT}/planning-mds/features/F{NNNN}-{slug}/feature-assembly-plan.md`
 7. `{PRODUCT_ROOT}/planning-mds/features/F{NNNN}-{slug}/**`
 8. `{PRODUCT_ROOT}/planning-mds/operations/evidence/features/F{NNNN}-{slug}/latest-run.json`
-9. `{PRODUCT_ROOT}/planning-mds/operations/evidence/runs/{FEATURE_RUN_ID}/**`
-10. `{PRODUCT_ROOT}/planning-mds/knowledge-graph/solution-ontology.yaml`
-11. `{PRODUCT_ROOT}/planning-mds/knowledge-graph/canonical-nodes.yaml`
-12. `{PRODUCT_ROOT}/planning-mds/knowledge-graph/feature-mappings.yaml`
-13. `{PRODUCT_ROOT}/planning-mds/knowledge-graph/code-index.yaml`
-14. `{PRODUCT_ROOT}/planning-mds/knowledge-graph/coverage-report.yaml`
-15. Source files changed by the feature under `{PRODUCT_ROOT}/engine/`,
+9. `{PRODUCT_ROOT}/planning-mds/operations/evidence/runs/{FEATURE_RUN_ID}/evidence-manifest.json`
+10. Role reports and support artifacts named by the manifest and needed for
+    the review question
+11. `{PRODUCT_ROOT}/planning-mds/knowledge-graph/solution-ontology.yaml`
+12. `{PRODUCT_ROOT}/planning-mds/knowledge-graph/canonical-nodes.yaml`
+13. `{PRODUCT_ROOT}/planning-mds/knowledge-graph/feature-mappings.yaml`
+14. `{PRODUCT_ROOT}/planning-mds/knowledge-graph/code-index.yaml`
+15. `{PRODUCT_ROOT}/planning-mds/knowledge-graph/coverage-report.yaml`
+16. Source files changed by the feature under `{PRODUCT_ROOT}/engine/`,
     `{PRODUCT_ROOT}/experience/`, and `{PRODUCT_ROOT}/neuron/` as applicable
 
 ## On-Demand Paths
@@ -95,6 +97,8 @@ Load in this order when the work is feature-scoped:
 - `{PRODUCT_ROOT}/planning-mds/architecture/**`
 - Runtime, CI, test, lint, scan, and coverage artifacts cited by the feature
   evidence package
+- Raw logs, screenshots, and `artifacts/**` only when cited by the manifest,
+  report under review, validator failure, or explicit operator request
 - `agents/<role>/references/**` only after a matching `agents/ROUTER.md` row
 
 ## Primary Question

@@ -37,6 +37,20 @@ Two profiles exist:
 Evidence is a **retrieval/audit aid over the run** — raw artifacts (code,
 PRDs, ADRs, `STATUS.md`, trackers) remain authoritative on conflict.
 
+## Retrieval Policy
+
+Evidence under `{PRODUCT_ROOT}/planning-mds/operations/**` is cold archive.
+Agents must honor `{PRODUCT_ROOT}/.agentignore` before broad product discovery
+and must not bulk-read or broad-search operations evidence by default.
+
+The supported retrieval path is index-first: read `operations/evidence/README.md`,
+then feature `latest-run.json`, then the selected run's
+`evidence-manifest.json`. Open raw reports, logs, screenshots, and
+`artifacts/**` only when an explicit audit, validation, closeout, failure
+triage, or user request requires that exact artifact. When a formal action run
+bypasses `.agentignore`, record the reason and path in `artifact-trace.md`.
+The full policy lives in `agents/docs/AGENTIGNORE.md`.
+
 ## Mental Model
 
 ```

@@ -85,6 +85,16 @@ You run **in parallel with the Security agent** during the review action. Securi
 **Use a higher capability tier for:** complex architecture reviews and large refactor evaluation
 **Use a lightweight tier for:** formatting checks, naming suggestions, and documentation review
 
+## Retrieval Guard
+
+Before broad reads or searches in `{PRODUCT_ROOT}`, load
+`{PRODUCT_ROOT}/.agentignore` when present and honor its gitignore-style
+patterns as agent retrieval exclusions. Treat
+`{PRODUCT_ROOT}/planning-mds/operations/**` as cold archive: start from the
+evidence README, feature `latest-run.json`, and `evidence-manifest.json`, then
+read only exact evidence files required for audit, validation, closeout, failure
+triage, or an explicit user request. See `agents/docs/AGENTIGNORE.md`.
+
 ## Review Dimensions
 
 Nine core dimensions to check on every review. Walk through each one — don't skip.

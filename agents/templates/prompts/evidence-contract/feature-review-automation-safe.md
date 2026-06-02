@@ -43,17 +43,20 @@ CONTEXT LOADING ORDER:
 5. agents/actions/feature.md
 6. FEATURE_PATH/feature-assembly-plan.md
 7. FEATURE_PATH/**
-8. FEATURE_RUN_FOLDER/**
-9. agents/product-manager/SKILL.md
-10. agents/architect/SKILL.md
-11. agents/quality-engineer/SKILL.md
-12. agents/code-reviewer/SKILL.md
-13. agents/security/SKILL.md
-14. agents/devops/SKILL.md when RUN_DEVOPS resolves to yes
+8. FEATURE_INDEX_ROOT/latest-run.json when present
+9. FEATURE_RUN_FOLDER/evidence-manifest.json
+10. Role reports and support artifacts named by the manifest and needed for the review question
+11. agents/product-manager/SKILL.md
+12. agents/architect/SKILL.md
+13. agents/quality-engineer/SKILL.md
+14. agents/code-reviewer/SKILL.md
+15. agents/security/SKILL.md
+16. agents/devops/SKILL.md when RUN_DEVOPS resolves to yes
 
 FORBIDDEN:
 - Editing implementation code, tests, feature docs, closeout files, trackers, KG artifacts, or feature evidence packages
 - Writing into FEATURE_RUN_FOLDER
+- Bulk-loading FEATURE_RUN_FOLDER/**, raw logs, screenshots, or artifacts/** without a manifest citation, validator failure, or explicit operator request
 - Treating prior feature-action approval as proof that the feature is done
 - Approving from report summaries without checking raw evidence paths
 - Substituting global evidence lanes for feature-scoped role evidence
