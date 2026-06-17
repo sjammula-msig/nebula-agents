@@ -120,13 +120,18 @@ Framework-repo-level files that stay in `nebula-agents` and apply to the framewo
 | `CONTRIBUTING.md` | Framework contribution guidelines |
 | `CONSUMER-CONTRACT.md` | Formal interface with downstream product repos |
 
-## Context Efficiency
+## Context Engineering
 
-20,700+ lines of reference docs across 11 roles. Do not load all references
-for a role — load the task-matched subset.
+Keeping agent context lean and relevant is a first-class discipline: select only
+what's needed, compress it, persist state across long sessions, and isolate by
+role. Start with the strategy doc; the others are the mechanisms it relies on.
 
+- **[CONTEXT-ENGINEERING.md](./docs/CONTEXT-ENGINEERING.md)** — the umbrella
+  strategy (select, compress, write, isolate) that the tools below serve. Read
+  this for *why*; the docs below for the mechanisms.
 - **[ROUTER.md](./ROUTER.md)** — maps task types to the specific reference
-  files needed. Consult before loading any `references/` file.
+  files needed. With 20,700+ lines of references across 11 roles, never load a
+  role's full corpus; consult ROUTER before opening any `references/` file.
 - **[KNOWLEDGE-GRAPH.md](./docs/KNOWLEDGE-GRAPH.md)** — how the solution
   knowledge graph works (mental model, file inventory, AST extraction,
   query CLIs, lifecycle, health checks). Use `hint.py <path>` before

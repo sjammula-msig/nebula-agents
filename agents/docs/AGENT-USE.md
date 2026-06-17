@@ -136,13 +136,13 @@ raw file list:
 ```text
 Ontology context:
 - target: <feature or story id>
-- load:
-  - {PRODUCT_ROOT}/planning-mds/knowledge-graph/solution-ontology.yaml
-  - {PRODUCT_ROOT}/planning-mds/knowledge-graph/canonical-nodes.yaml
-  - {PRODUCT_ROOT}/planning-mds/knowledge-graph/feature-mappings.yaml
-  - {PRODUCT_ROOT}/planning-mds/knowledge-graph/code-index.yaml (when code routing or reverse lookup is needed)
-  - {PRODUCT_ROOT}/planning-mds/knowledge-graph/coverage-report.yaml (when coverage/freshness status matters)
-- use the matching mapping entry as the first-pass routing context
+- retrieve via the CLIs (they join the KG yamls for you — do not load raw yamls into context):
+  - python3 {PRODUCT_ROOT}/scripts/kg/lookup.py <feature or story id>   # feature/story slice
+  - python3 {PRODUCT_ROOT}/scripts/kg/hint.py <path>                    # before any code search
+  - python3 {PRODUCT_ROOT}/scripts/kg/blast.py <node-or-file>          # impact radius before editing shared semantics
+- use the returned slice (matching mapping entry + one hop) as the first-pass routing context
+- open raw yamls under {PRODUCT_ROOT}/planning-mds/knowledge-graph/ ONLY to verify a
+  detail or repair drift — never as the default retrieval path
 - source precedence: raw feature/ADR/schema/API artifacts win over ontology mappings
 - if ontology drift is found, repair the authoritative source first if needed,
   then repair the ontology mapping in the same change set
@@ -150,13 +150,17 @@ Ontology context:
 
 Use the ontology to resolve canonical workflow, workflow state, capability,
 schema, ADR, and entity links. Do not treat it as a substitute for reading the linked raw
-artifacts when details or verification matter.
+artifacts when details or verification matter. See
+`agents/docs/CONTEXT-ENGINEERING.md` for *why* retrieval goes through the CLIs:
+query an index, do not read the repo — raw yamls never enter context by default.
 
 ### KG CLI Tools
 
 All KG tools are agent-agnostic and work from any terminal. The full CLI
 reference, mental model, lifecycle triggers, and failure modes live in
-**`agents/docs/KNOWLEDGE-GRAPH.md`**.
+**`agents/docs/KNOWLEDGE-GRAPH.md`**. For *why* these tools are shaped the way
+they are — the select/compress/write/isolate strategy they serve — see
+**`agents/docs/CONTEXT-ENGINEERING.md`**.
 
 Most-common session invocations:
 

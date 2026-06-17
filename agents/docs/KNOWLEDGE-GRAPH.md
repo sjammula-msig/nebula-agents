@@ -184,7 +184,7 @@ which all live at `{PRODUCT_ROOT}/scripts/kg/` and are agent-agnostic
 | `lookup.py F0007-S0003` | Same shape, scoped to one story |
 | `lookup.py F0007 --tier 1` | Minimal scope (target + direct refs only) |
 | `lookup.py F0007 --tier 2/3/4` | Progressive expansion (one hop, two hops, full) |
-| `lookup.py F0007 --fields target,affects` | Project specific top-level fields only |
+| `lookup.py F0007 --fields ids` | Trim resolved-node summaries to ids only (`--fields ids\|summaries\|full`, default `full`) — verbosity *within* the selected tier, not field projection |
 | `lookup.py F0007 --allow-missing` | Don't error on unmapped — useful for greenfield Phase A stubs |
 | `lookup.py --file engine/src/Foo.cs` | Reverse lookup: file → canonical nodes → features/stories |
 | `lookup.py --symbol <method-name>` | Symbols matching name with their containing node |
@@ -365,6 +365,10 @@ Adding a new validator mode:
 
 ## Cross-References
 
+- `agents/docs/CONTEXT-ENGINEERING.md` — the context-engineering strategy
+  (select / compress / write / isolate) the KG query layer, tiering, and
+  `workstate.py` serve. This doc is the *how the KG works*; that one is the
+  *why it's shaped for context*.
 - `agents/ROUTER.md` — task-to-reference routing; KG tools row points here.
 - `agents/docs/AGENT-USE.md` — session setup and prompt patterns; defers
   KG mechanics to this doc.
