@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import subprocess
 from pathlib import Path
 
@@ -8,6 +9,49 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[3]
 VALIDATOR = REPO_ROOT / "agents" / "scripts" / "validate_templates.py"
 PROMPT_SOURCE_DIR = REPO_ROOT / "agents" / "templates" / "prompts" / "evidence-contract"
+PLAN_CONTRACT_SOURCES = (
+    REPO_ROOT / "agents" / "actions" / "plan.md",
+    PROMPT_SOURCE_DIR / "plan-automation-safe.md",
+    PROMPT_SOURCE_DIR / "plan-operator-friendly.md",
+)
+FEATURE_CONTRACT_SOURCES = (
+    REPO_ROOT / "agents" / "actions" / "feature.md",
+    PROMPT_SOURCE_DIR / "feature-automation-safe.md",
+    PROMPT_SOURCE_DIR / "feature-operator-friendly.md",
+)
+TRACKER_PRODUCT_ROOT_COMMAND = "validate-trackers.py --product-root {PRODUCT_ROOT}"
+PLAN_TRACKER_COMMAND = f"{TRACKER_PRODUCT_ROOT_COMMAND} --skip-feature-evidence"
+FEATURE_TRACKER_COMMAND = f"{TRACKER_PRODUCT_ROOT_COMMAND} --feature {{FEATURE_ID}} --run-id {{RUN_ID}}"
+FEATURE_STAGE_COMMAND = (
+    "validate-feature-evidence.py --product-root {PRODUCT_ROOT} "
+    "--feature {FEATURE_ID} --run-id {RUN_ID} --stage {stage}"
+)
+FEATURE_CLOSEOUT_COMMAND = (
+    "validate-feature-evidence.py --product-root {PRODUCT_ROOT} "
+    "--feature {FEATURE_ID} --stage closeout"
+)
+
+
+def read_sources(paths: tuple[Path, ...]) -> dict[Path, str]:
+    return {path: path.read_text(encoding="utf-8") for path in paths}
+
+
+def product_root_tracker_lines(content: str) -> list[str]:
+    return [
+        line.strip()
+        for line in content.splitlines()
+        if TRACKER_PRODUCT_ROOT_COMMAND in line
+    ]
+
+
+def assert_no_unscoped_product_root_tracker_commands(sources: dict[Path, str]) -> None:
+    allowed_flags = ("--skip-feature-evidence", "--feature {FEATURE_ID}", "--all-feature-evidence")
+    offenders: list[str] = []
+    for path, content in sources.items():
+        for line in product_root_tracker_lines(content):
+            if not any(flag in line for flag in allowed_flags):
+                offenders.append(f"{path.relative_to(REPO_ROOT)}: {line}")
+    assert offenders == []
 
 
 def run_validator(plan_action: Path, feature_action: Path, templates_dir: Path) -> subprocess.CompletedProcess[str]:
@@ -84,6 +128,44 @@ def test_exit_validation_drift_is_reported(tmp_path: Path) -> None:
     assert result.returncode != 0
     assert "missing exit-validation commands" in result.stdout
     assert "validate-trackers.py" in result.stdout
+
+
+def test_plan_closeout_examples_use_tracker_only_validation_contract() -> None:
+    sources = read_sources(PLAN_CONTRACT_SOURCES)
+
+    for path, content in sources.items():
+        assert PLAN_TRACKER_COMMAND in content, path.relative_to(REPO_ROOT)
+    assert_no_unscoped_product_root_tracker_commands(sources)
+
+
+def test_feature_closeout_examples_use_scoped_validation_contract() -> None:
+    sources = read_sources(FEATURE_CONTRACT_SOURCES)
+    combined = "\n".join(sources.values())
+
+    assert FEATURE_TRACKER_COMMAND in combined
+    assert FEATURE_CLOSEOUT_COMMAND in combined
+    assert_no_unscoped_product_root_tracker_commands(sources)
+
+
+def test_feature_gate_validation_examples_cover_g1_through_g6() -> None:
+    combined = "\n".join(read_sources(FEATURE_CONTRACT_SOURCES).values())
+
+    for stage in ("G1", "G2", "G3", "G4", "G5", "G6"):
+        assert FEATURE_STAGE_COMMAND.replace("{stage}", stage) in combined
+
+
+def test_repo_wide_tracker_validation_examples_require_explicit_flag() -> None:
+    sources = read_sources(PLAN_CONTRACT_SOURCES + FEATURE_CONTRACT_SOURCES)
+    combined = "\n".join(sources.values())
+
+    assert "--all-feature-evidence" in combined
+    repo_wide_tracker_mentions = [
+        line.strip()
+        for line in combined.splitlines()
+        if "validate-trackers.py" in line and re.search(r"repo-wide|health/audit", line, re.IGNORECASE)
+    ]
+    assert repo_wide_tracker_mentions
+    assert all("--all-feature-evidence" in line or "explicit" in line.lower() for line in repo_wide_tracker_mentions)
 
 
 # --------------------------------------------------------------------------- #

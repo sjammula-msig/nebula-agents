@@ -228,6 +228,106 @@ def test_command_artifact_missing_fires(tmp_path: Path) -> None:
     assert "command_artifact_missing_fails" in rules
 
 
+def command_artifact_result(tmp_path: Path, artifact: str, *, existing_rel: str | None = None):
+    product = tmp_path / "product"
+    write_registry(product, archived="| F0001 | New Feature | 2026-05-19 |  | `archive/F0001-new/` |")
+    run_folder = write_manifest_run(product, "F0001-new", "F0001")
+    if existing_rel:
+        target = product / existing_rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("ok\n", encoding="utf-8")
+    (run_folder / "commands.log").write_text(
+        json.dumps({
+            "schema_version": 1,
+            "timestamp": "2026-05-19T12:00:00Z",
+            "cwd": "{PRODUCT_ROOT}",
+            "command": "pnpm test",
+            "exit_code": 0,
+            "artifacts": [artifact],
+            "redactions": [],
+        }) + "\n",
+        encoding="utf-8",
+    )
+    return run_validator(product, "--feature", "F0001", "--run-id", RUN_ID, "--stage", "G0", "--json")
+
+
+def command_artifact_rel() -> str:
+    return f"planning-mds/operations/evidence/runs/{RUN_ID}/artifacts/test-results/output.log"
+
+
+def test_repo_relative_existing_command_artifact_passes(tmp_path: Path) -> None:
+    artifact = command_artifact_rel()
+    result = command_artifact_result(tmp_path, artifact, existing_rel=artifact)
+    assert result.returncode == 0, result.stdout + result.stderr
+    rules = {entry["rule_id"] for entry in json_result(result)["errors"]}
+    assert "artifact_missing_fails" not in rules
+
+
+def test_repo_relative_missing_command_artifact_fails(tmp_path: Path) -> None:
+    artifact = command_artifact_rel()
+    result = command_artifact_result(tmp_path, artifact)
+    rules = {entry["rule_id"] for entry in json_result(result)["errors"]}
+    assert "artifact_missing_fails" in rules
+    assert "commands_log_artifact_missing_fails" in rules
+    assert "command_artifact_missing_fails" in rules
+
+
+def test_current_product_root_absolute_command_artifact_warns(tmp_path: Path) -> None:
+    artifact = command_artifact_rel()
+    product = tmp_path / "product"
+    absolute_artifact = str(product / artifact)
+    result = command_artifact_result(tmp_path, absolute_artifact, existing_rel=artifact)
+    assert result.returncode == 0, result.stdout + result.stderr
+    warnings = {entry["rule_id"] for entry in json_result(result)["warnings"]}
+    assert "absolute_artifact_under_product_root_warns" in warnings
+
+
+def test_product_root_placeholder_command_artifact_warns(tmp_path: Path) -> None:
+    artifact = command_artifact_rel()
+    result = command_artifact_result(tmp_path, f"{{PRODUCT_ROOT}}/{artifact}", existing_rel=artifact)
+    assert result.returncode == 0, result.stdout + result.stderr
+    warnings = {entry["rule_id"] for entry in json_result(result)["warnings"]}
+    assert "placeholder_artifact_path_normalized_warns" in warnings
+
+
+def test_historical_absolute_command_artifact_relocates_when_current_file_exists(tmp_path: Path) -> None:
+    artifact = command_artifact_rel()
+    legacy_artifact = f"/mnt/c/Users/gajap/sandbox/nebula-insurance-crm/{artifact}"
+    result = command_artifact_result(tmp_path, legacy_artifact, existing_rel=artifact)
+    assert result.returncode == 0, result.stdout + result.stderr
+    warnings = {entry["rule_id"] for entry in json_result(result)["warnings"]}
+    assert "legacy_absolute_artifact_relocated_warns" in warnings
+
+
+def test_historical_absolute_command_artifact_missing_still_fails(tmp_path: Path) -> None:
+    artifact = command_artifact_rel()
+    legacy_artifact = f"/mnt/c/Users/gajap/sandbox/nebula-insurance-crm/{artifact}"
+    result = command_artifact_result(tmp_path, legacy_artifact)
+    payload = json_result(result)
+    rules = {entry["rule_id"] for entry in payload["errors"]}
+    warnings = {entry["rule_id"] for entry in payload["warnings"]}
+    assert "artifact_missing_fails" in rules
+    assert "legacy_absolute_artifact_relocated_warns" not in warnings
+
+
+def test_scratch_command_artifact_fails(tmp_path: Path) -> None:
+    result = command_artifact_result(tmp_path, "/tmp/nebula-artifact-output.log")
+    rules = {entry["rule_id"] for entry in json_result(result)["errors"]}
+    assert "scratch_artifact_fails" in rules
+
+
+def test_unmappable_absolute_command_artifact_fails(tmp_path: Path) -> None:
+    result = command_artifact_result(tmp_path, "/opt/external-artifact-output.log")
+    rules = {entry["rule_id"] for entry in json_result(result)["errors"]}
+    assert "unmappable_absolute_artifact_fails" in rules
+
+
+def test_url_command_artifact_behavior_is_unchanged(tmp_path: Path) -> None:
+    result = command_artifact_result(tmp_path, "https://example.invalid/artifacts/test-results/output.log")
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert json_result(result)["errors"] == []
+
+
 # --------------------------------------------------------------------------- #
 # §22 validator-defect downgrade
 # --------------------------------------------------------------------------- #

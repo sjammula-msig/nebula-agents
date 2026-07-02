@@ -111,11 +111,19 @@ Run in this order:
 
 1. `python3 agents/product-manager/scripts/validate-stories.py {FEATURE_PATH}`
 2. `python3 agents/product-manager/scripts/generate-story-index.py {PRODUCT_ROOT}/planning-mds/features/`
-3. `python3 agents/product-manager/scripts/validate-trackers.py`
+3. `python3 agents/product-manager/scripts/validate-trackers.py --product-root {PRODUCT_ROOT} --skip-feature-evidence`
 4. `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --write-coverage-report` when KG changed
 5. `python3 {PRODUCT_ROOT}/scripts/kg/validate.py`
 6. `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --check-drift`
 7. `python3 agents/scripts/validate_templates.py`
+
+Plan closeout is tracker/base-run validation only. Do not run
+`validate-feature-evidence.py` for the current plan run, and do not run
+repo-wide feature-evidence validation as a plan closeout gate. Identify direct
+or impacted feature dependencies from planning artifacts and KG mappings, then
+record existing dependency evidence references or "audit pending" notes in the
+plan run evidence. Automated dependency discovery/validator support is a later
+contract step.
 
 ---
 
@@ -354,9 +362,14 @@ Before Phase A approval, synchronize and validate planning trackers:
 
 3. Validate trackers and stories:
    - Run `python3 agents/product-manager/scripts/validate-stories.py {PRODUCT_ROOT}/planning-mds/features/F{NNNN}-{slug}/` for each touched feature
-   - Run `python3 agents/product-manager/scripts/validate-trackers.py`
+   - Run `python3 agents/product-manager/scripts/validate-trackers.py --product-root {PRODUCT_ROOT} --skip-feature-evidence`
 
-4. If validation fails:
+4. Prepare dependency evidence audit:
+   - Identify direct or impacted feature dependencies from the PRD, architecture notes, `feature-mappings.yaml`, and KG lookup output
+   - Cite any existing approved dependency evidence references, or record "audit pending" when no dependency evidence check is available yet
+   - Do not run repo-wide feature-evidence validation to satisfy this plan gate
+
+5. If validation fails:
    - Fix tracker drift immediately
    - Re-run all validation commands until passing
 
@@ -365,6 +378,7 @@ Before Phase A approval, synchronize and validate planning trackers:
 - [ ] Story index regenerated after story file changes
 - [ ] Story validation passes
 - [ ] Tracker validation passes
+- [ ] Direct/impacted dependency evidence references or audit-pending notes recorded
 - [ ] Minimal feature mapping stub present for touched planning scope
 - [ ] No stale links/paths/status mismatches across tracker docs
 

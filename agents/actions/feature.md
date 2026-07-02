@@ -169,12 +169,18 @@ Run `validate-feature-evidence.py` after producing each gate's artifacts so miss
 | G1   | `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID} --stage G1` | `G1` |
 | G2   | `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID} --stage G2` | `G2` |
 | G3   | `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID} --stage G3` | `G3` |
+| G4 | `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID} --stage G4` | `G4` approval decision and mitigation token validation |
 | G5 | `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID} --stage G5` | `G5` |
 | G6 | `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID} --stage G6` | `G6` candidate validation; runs **before** tracker sync |
 | G7 | `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --check-symbols && python3 {PRODUCT_ROOT}/scripts/kg/validate.py --check-drift` | Architect KG reconciliation — semantic-graph (`code-index.yaml` / `canonical-nodes.yaml`) bound against the as-built source; symbol + drift checks exit 0. Binds **code** paths only (stable across the closeout archive move) |
 | G8 | `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --stage closeout` | After supersession-and-publish completes — `latest-run.json`, `kg-reconciliation.md`, and `pm-closeout.md` must exist; tracker results must be in `lifecycle-gates.log` |
 
 Stage-validation failures must be repaired before advancing the gate. Do not skip stage validation even when the missing artifact "will land later" — the Feature Evidence Contract stage matrix declares exactly which artifacts must exist by stage.
+
+Tracker validation at `G6` and `G8` must be scoped to the current feature/run
+with `--product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID}`.
+Repo-wide feature-evidence validation is a separate health/audit action and is
+not a default feature gate.
 
 ## Stop Conditions
 
@@ -192,7 +198,7 @@ Run in this order. Steps are grouped by gate; the `G7` architect group binds **c
 
 1. Applicable backend / frontend / AI / QE runtime commands for changed surfaces, with evidence paths recorded under `{PRODUCT_ROOT}/planning-mds/operations/evidence/**`
 2. **[G6]** `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID} --stage G6` (candidate validation before tracker sync)
-3. **[G6]** `python3 agents/product-manager/scripts/validate-trackers.py` (calls feature-evidence at `--stage G6`; appends tracker results to `lifecycle-gates.log`)
+3. **[G6]** `python3 agents/product-manager/scripts/validate-trackers.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID}` (scoped tracker validation; calls feature-evidence at `--stage G6`; appends tracker results to `lifecycle-gates.log`)
 4. **[G7]** `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --regenerate-symbols` when code in bound files changed (architect; after confirming/adding `code-index.yaml` bindings + `canonical-nodes.yaml` entries for the as-built source)
 5. **[G7]** `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --check-symbols`
 6. **[G7]** `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --check-drift` (the architect's semantic graph must be green before closeout)
@@ -729,11 +735,15 @@ Run these review agents in parallel:
      - Do not transition
      - Re-present current state and allowed options
 
+5. After an approving decision is recorded in `gate-decisions.md`, run scoped G4 validation before signoff:
+   - `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID} --stage G4`
+
 **Gate Criteria:**
 - [ ] Code + security critical issues = 0 before approval is enabled
 - [ ] High issues fixed or approved with explicit mitigation justification
 - [ ] Feature is complete vertical slice
 - [ ] User decision recorded with rationale when required
+- [ ] `validate-feature-evidence.py --stage G4` exits 0 before signoff
 
 ---
 
@@ -777,14 +787,14 @@ Before setting feature status to `Done` or moving to archive, verify role signof
 4. Run candidate stage validation:
    - `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID} --stage G6`
 5. Run tracker validation (it internally calls feature-evidence at `--stage G6`) and append the result to `lifecycle-gates.log`:
-   - `python3 agents/product-manager/scripts/validate-trackers.py`
+   - `python3 agents/product-manager/scripts/validate-trackers.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID}`
 
 **Gate Criteria:**
 - [ ] All `G0`–`G5` evidence present with passing verdicts
 - [ ] `feature-action-execution.md` complete with a gate-by-gate timeline
 - [ ] Manifest is a valid pre-closeout candidate (no closeout artifacts yet)
 - [ ] `validate-feature-evidence.py --stage G6` exits 0
-- [ ] `validate-trackers.py` passes and its result is recorded in `lifecycle-gates.log`
+- [ ] Scoped `validate-trackers.py --feature {FEATURE_ID} --run-id {RUN_ID}` passes and its result is recorded in `lifecycle-gates.log`
 
 ---
 
@@ -836,7 +846,7 @@ Before setting feature status to `Done` or moving to archive, verify role signof
    - After the archive folder move (step 3) and the `feature-mappings.yaml` status/path update (step 4), regenerate the **path-sensitive** coverage layer, which binds the now-relocated feature-doc paths: `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --write-coverage-report`.
    - Run `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --check-drift` to confirm the post-move graph is green.
 7. **Publish the approved run** in the supersession-and-publish order (see "Closeout Supersession-And-Publish Sequence"): run `patch-prior-manifest.py` to mark prior approved manifests `superseded`, then write `latest-run.json` pointing at this run, then finalize the manifest to `status: approved`.
-8. **Tracker sync:** regenerate the story rollup when story files moved/changed (`python3 agents/product-manager/scripts/generate-story-index.py {PRODUCT_ROOT}/planning-mds/features/`), then run final closeout validation (`python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --stage closeout`) and `python3 agents/product-manager/scripts/validate-trackers.py`. Treat any tracker drift as blocking and re-run after repair.
+8. **Tracker sync:** regenerate the story rollup when story files moved/changed (`python3 agents/product-manager/scripts/generate-story-index.py {PRODUCT_ROOT}/planning-mds/features/`), then run final closeout validation (`python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --stage closeout`) and scoped tracker validation (`python3 agents/product-manager/scripts/validate-trackers.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID}`). Treat any tracker drift as blocking and re-run after repair.
 
 **Completion Criteria:**
 - [ ] Product Manager closeout executed after signoff and `G7` architect KG reconciliation passed
@@ -848,7 +858,7 @@ Before setting feature status to `Done` or moving to archive, verify role signof
 - [ ] `validate.py --check-drift` exits 0 on the post-move graph
 - [ ] Prior approved manifests patched to `superseded` and `latest-run.json` written (supersession-and-publish order)
 - [ ] REGISTRY/ROADMAP/BLUEPRINT synchronized; STORY-INDEX regenerated if story files changed
-- [ ] Final `validate-feature-evidence.py --stage closeout` and `validate-trackers.py` pass (tracker results recorded in `lifecycle-gates.log`)
+- [ ] Final `validate-feature-evidence.py --stage closeout` and scoped `validate-trackers.py --feature {FEATURE_ID} --run-id {RUN_ID}` pass (tracker results recorded in `lifecycle-gates.log`)
 
 ---
 

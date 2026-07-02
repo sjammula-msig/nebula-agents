@@ -52,7 +52,7 @@ Open these on demand only when lookup links them, the current gate needs them, o
 
 Don't generate `{PLAN_RUN_ID}` with `uuid4` or any non-contract format. Don't write or consume `current-run.json`. Don't produce role reports (`g0-*`, `test-*`, `code-review-*`, etc.) — those belong to the feature action's evidence package at `agents/actions/feature.md`, not the plan action. Don't create a feature evidence package at `{FEATURE_INDEX_ROOT}/` during plan; that root is created later by `feature.md`. Don't skip the approval or ontology-sync gates. Don't edit `canonical-nodes.yaml` or `solution-ontology.yaml` outside the Architect phase. Don't treat lookup/KG mappings as authoritative over raw artifacts. Don't climb past max_auto_tier without recording a workstate.py escalate event.
 
-Append every shell command to `{PLAN_RUN_FOLDER}/commands.log` as JSON Lines per the §13 schema.
+Append every shell command to `{PLAN_RUN_FOLDER}/commands.log` with `python3 agents/scripts/append-command-log.py`, passing `--log`, `--product-root`, `--framework-root`, `--cwd`, `--command`, `--exit-code`, and repeatable `--artifact` values as needed. Artifact paths must be durable product-repo paths, usually under the run's `artifacts/` folder; scratch paths such as `/tmp/...` are not durable evidence artifacts.
 
 Keep ownership strict — product-manager owns Phase A: `PRD.md`, persona files, acceptance criteria, story breakdown, and the initial `STATUS.md` skeleton (Required Role Matrix and empty Story Provenance table). architect owns Phase B: ADRs, API/schema updates, data model, BLUEPRINT §4, `canonical-nodes.yaml` updates, `solution-ontology.yaml` updates, and `feature-mappings.yaml` additions. The per-feature `feature-assembly-plan.md` is NOT a plan-action deliverable — it belongs to `agents/actions/feature.md` Step 0. implementation agents do not run during the plan action, and other roles flag drift but do not silently redefine canonical shared semantics.
 
@@ -65,18 +65,20 @@ Follow these gates exactly:
 
 Evidence outputs land in two places. In `{PLAN_RUN_FOLDER}`: the six base run files (`README.md`, `action-context.md`, `artifact-trace.md`, `gate-decisions.md`, `commands.log`, `lifecycle-gates.log`) plus an `Evidence Index` in `README.md` that points to the planning artifacts. In `{FEATURE_PATH}`: `PRD.md`, persona files, acceptance-criteria checklist, story files, `STATUS.md` skeleton (Phase A); ADRs, `README.md` (feature ERD + C4), `GETTING-STARTED.md` (Phase B). The per-feature `feature-assembly-plan.md` is produced later by `agents/actions/feature.md` Step 0, not the plan action.
 
+Plan-time dependency evidence audit: identify direct or impacted feature dependencies from the PRD, architecture notes, `feature-mappings.yaml`, and KG lookup output. Record existing approved dependency evidence references or "audit pending" notes in `{PLAN_RUN_FOLDER}/artifact-trace.md` or `gate-decisions.md`. Automated dependency discovery/validator implementation is a later step; do not substitute repo-wide feature-evidence validation for this plan gate.
+
 Stop immediately if PRD approval is refused, if architecture approval is refused, if the ontology sync gate fails and cannot be reconciled, if `kg/validate.py --check-drift` fails after one repair cycle, or if a canonical node edit is attempted outside Architect role.
 
 Close the run by executing these in order, each exit 0:
 - `python3 agents/product-manager/scripts/validate-stories.py {FEATURE_PATH}`
 - `python3 agents/product-manager/scripts/generate-story-index.py {PRODUCT_ROOT}/planning-mds/features/`
-- `python3 agents/product-manager/scripts/validate-trackers.py` (with `FEATURE_ID` context if applicable)
+- `python3 agents/product-manager/scripts/validate-trackers.py --product-root {PRODUCT_ROOT} --skip-feature-evidence`
 - IF KG changed: `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --write-coverage-report`
 - `python3 {PRODUCT_ROOT}/scripts/kg/validate.py`
 - `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --check-drift`
 - `python3 agents/scripts/validate_templates.py`
 
-Do NOT call `validate-feature-evidence.py` at plan — there is no feature evidence package yet. The first stage validation call (`--stage G0`) happens during the feature action.
+Do NOT call `validate-feature-evidence.py` at plan — there is no feature evidence package yet. Do NOT run `validate-trackers.py --all-feature-evidence` as plan closeout. The first stage validation call (`--stage G0`) happens during the feature action.
 
 Resolve conflicts like this:
 - PRD vs architecture conflict → resolve in Phase B before architecture approval; do not silently change PRD
