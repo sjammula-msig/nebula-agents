@@ -107,7 +107,7 @@ REQUIRED TOOL INVOCATIONS:
 - `hint.py <path> --run-id {RUN_ID} --telemetry-file {PRODUCT_ROOT}/.kg-state/telemetry.jsonl` before any Grep/Glob on code
 - `blast.py <node-id> --run-id {RUN_ID} --telemetry-file {PRODUCT_ROOT}/.kg-state/telemetry.jsonl` before shared-semantics edits
 - `cochange.py --coverage-gaps` once per feature in clean mode (at session start); at start + before closeout in drift-reconcile; NOT per slice
-- Stage validation after every gate's artifact is written:
+- Stage validation for every feature evidence gate from G0 through G6 after the gate's artifact is written:
   `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID} --stage {GATE}` (must exit 0; warnings allowed)
 - Every shell command must be appended as a JSONL line to {RUN_FOLDER}/commands.log per §13 schema (schema_version, timestamp with timezone, cwd, command, exit_code, artifacts[], redactions[])
 
@@ -136,11 +136,11 @@ G0   ARCHITECT ASSEMBLY PLAN VALIDATION — and authoring on clean first run
      - Step 0.5 (validate): scope split, agent dependencies, integration checkpoints, artifact ownership; initialize Required Signoff Roles matrix in {FEATURE_PATH}/STATUS.md
      - Produce {RUN_FOLDER}/g0-assembly-plan-validation.md (Result: PASS|PASS WITH RECOMMENDATIONS|FAIL)
      - Update manifest gate_results.assembly_plan_validation, status="draft" (initial) then "in-progress" after G0 pass
-     - `validate-feature-evidence.py --stage G0 --run-id {RUN_ID}` exit 0
+     - `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID} --stage G0` exit 0
 
 G1   RUNTIME PREFLIGHT
      - If runtime_bearing=true: produce {RUN_FOLDER}/g1-runtime-preflight.md with command evidence; else record manifest omission per §10
-     - `validate-feature-evidence.py --stage G1 --run-id {RUN_ID}` exit 0
+     - `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID} --stage G1` exit 0
 
 G2   SELF-REVIEW + QE + DEPLOYABILITY (per role, with evidence paths)
      - Reconcile manifest conditional booleans against discovered scope BEFORE running G2 stage validation:
@@ -153,14 +153,15 @@ G2   SELF-REVIEW + QE + DEPLOYABILITY (per role, with evidence paths)
      - {RUN_FOLDER}/test-plan.md, test-execution-report.md, coverage-report.md (report always exists; waiver allowed inside report when coverage cannot be produced)
      - {RUN_FOLDER}/deployability-check.md (always required; booleans must match manifest)
      - Update manifest gate_results.self_review and role_results.Quality Engineer / DevOps
-     - `validate-feature-evidence.py --stage G2 --run-id {RUN_ID}` exit 0
+     - `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID} --stage G2` exit 0
 
 G3   CODE + SECURITY REVIEW (parallel)
      - {RUN_FOLDER}/code-review-report.md (Result: APPROVED|APPROVED WITH RECOMMENDATIONS|REQUEST CHANGES|REJECTED)
      - {RUN_FOLDER}/security-review-report.md when security_sensitive_scope=true or Security required in STATUS
-     - `validate-feature-evidence.py --stage G3 --run-id {RUN_ID}` exit 0
+     - `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID} --stage G3` exit 0
 
 G4   APPROVAL — critical=0; high requires explicit mitigation token recorded in gate-decisions.md
+     - After the approval decision is recorded, `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID} --stage G4` exit 0
 
 G5 SIGNOFF
      - Every Required=Yes role: verdict={PASS|APPROVED}(|WITH RECOMMENDATIONS), reviewer, ISO date, evidence path under {RUN_FOLDER}/**
@@ -172,13 +173,13 @@ G5 SIGNOFF
          3. each recommendation has owner and follow-up disposition (rule recommendation_missing_owner_fails)
          4. PM acceptance recorded in pm-closeout.md (and optionally signoff-ledger.md) — landed at G8, but the role report must already name what PM is being asked to accept
          5. no blocking findings hidden as recommendations (rule blocking_language_with_pass_fails) — high/critical or blocking language with a passing verdict fails unless explicitly mitigated
-     - `validate-feature-evidence.py --stage G5 --run-id {RUN_ID}` exit 0
+     - `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID} --stage G5` exit 0
 
 G6 CANDIDATE EVIDENCE VALIDATION (no PM closeout artifacts yet)
      - {RUN_FOLDER}/feature-action-execution.md present (gate timeline)
      - Manifest is a pre-closeout candidate (pm_closeout, tracker_sync, latest-run.json all pending)
-     - `validate-feature-evidence.py --stage G6 --run-id {RUN_ID}` exit 0
-     - THEN: `python3 agents/product-manager/scripts/validate-trackers.py --feature {FEATURE_ID} --run-id {RUN_ID}` exit 0
+     - `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID} --stage G6` exit 0
+     - THEN: `python3 agents/product-manager/scripts/validate-trackers.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID}` exit 0
        (validate-trackers.py internally calls validate-feature-evidence.py --stage G6 per §22 integration)
      - Append every lifecycle validator command (tracker, story-index, KG validators, validate_templates) to {RUN_FOLDER}/lifecycle-gates.log
 
@@ -200,8 +201,8 @@ G8 PM CLOSEOUT (PM agent role switch is mandatory)
      - AFTER the archive move, regenerate the path-sensitive coverage layer: `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --write-coverage-report` (running it before the move re-stales it), then `--check-drift` exit 0
      - Run `python3 agents/product-manager/scripts/patch-prior-manifest.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --new-run-id {RUN_ID}`; it is idempotent and patches all prior approved manifests for the same feature to `status="superseded"` (rule two_approved_runs_without_supersession_fails)
      - Write {FEATURE_INDEX_ROOT}/latest-run.json (schema per §12) pointing to {RUN_FOLDER} only after patch-prior-manifest.py exits 0
-     - Final validation: `validate-feature-evidence.py --stage closeout` exit 0
-       (no --run-id; resolves via latest-run.json)
+     - Final validation: `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --stage closeout` exit 0 (no --run-id; resolves via latest-run.json)
+     - Scoped tracker validation: `python3 agents/product-manager/scripts/validate-trackers.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID}` exit 0
 
 Checklist for G6 (Candidate Evidence Validation):
 - Confirm all G0–G5 evidence present and verdicts passing
@@ -228,7 +229,8 @@ Checklist for G8 (PM Closeout) — run after G6 + tracker sync:
 - Finalize evidence-manifest.json (status="approved")
 - Run `python3 agents/product-manager/scripts/patch-prior-manifest.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --new-run-id {RUN_ID}`; it is idempotent and patches all prior approved manifests for the same feature to `status="superseded"`
 - Write {FEATURE_INDEX_ROOT}/latest-run.json (schema_version=1, feature_id, run_id={RUN_ID}, run_path, manifest_path, status="approved", approved_on={today}) only after patch-prior-manifest.py exits 0
-- Run final `validate-feature-evidence.py --stage closeout` and confirm exit 0
+- Run final `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --stage closeout` and confirm exit 0
+- Run scoped `python3 agents/product-manager/scripts/validate-trackers.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID}` and confirm exit 0
 
 VALIDATOR-DEFECT FALLBACK (only if a validator defect blocks closeout):
 - Fix the validator and re-run is preferred
@@ -251,7 +253,7 @@ STOP CONDITIONS:
 EXIT VALIDATION (run in order; all exit 0; record evidence paths under {PRODUCT_ROOT}/planning-mds/operations/evidence/**):
 - Applicable backend/frontend/test commands for changed surfaces (inside runtime containers; evidence paths recorded)
 - `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID} --stage G6`
-- `python3 agents/product-manager/scripts/validate-trackers.py` (calls feature-evidence at --stage G6 per §22; with --feature {FEATURE_ID} --run-id {RUN_ID} when scoped)
+- `python3 agents/product-manager/scripts/validate-trackers.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID}` (scoped tracker validation; calls feature-evidence at --stage G6 per §22)
 - After §17 step 4 (`patch-prior-manifest.py` then `latest-run.json`): `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --stage closeout`
 - `python3 agents/product-manager/scripts/generate-story-index.py {PRODUCT_ROOT}/planning-mds/features/` (if stories changed)
 - IF code in bound files changed: `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --regenerate-symbols`

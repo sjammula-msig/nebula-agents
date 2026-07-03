@@ -105,6 +105,11 @@ EVIDENCE OUTPUTS (in {FEATURE_PATH}):
 - ADRs under {FEATURE_PATH}/adrs/ as applicable (Phase B)
 - README.md and GETTING-STARTED.md (Phase B)
 
+PLAN-TIME DEPENDENCY EVIDENCE AUDIT:
+- Identify direct or impacted feature dependencies from PRD, architecture notes, feature-mappings.yaml, and KG lookup output
+- Record existing approved dependency evidence references or "audit pending" notes in {PLAN_RUN_FOLDER}/artifact-trace.md or gate-decisions.md
+- Automated dependency discovery/validator implementation is a later step; do not substitute repo-wide feature-evidence validation for this plan gate
+
 STOP CONDITIONS:
 - PRD approval refused by user
 - Architecture approval refused by user
@@ -115,12 +120,13 @@ STOP CONDITIONS:
 EXIT VALIDATION (run in order; all exit 0):
 - `python3 agents/product-manager/scripts/validate-stories.py {FEATURE_PATH}`
 - `python3 agents/product-manager/scripts/generate-story-index.py {PRODUCT_ROOT}/planning-mds/features/`
-- `python3 agents/product-manager/scripts/validate-trackers.py` (with FEATURE_ID context if applicable)
+- `python3 agents/product-manager/scripts/validate-trackers.py --product-root {PRODUCT_ROOT} --skip-feature-evidence`
 - IF KG changed: `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --write-coverage-report`
 - `python3 {PRODUCT_ROOT}/scripts/kg/validate.py`
 - `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --check-drift`
 - `python3 agents/scripts/validate_templates.py`
 - NOTE: do NOT call validate-feature-evidence.py at plan — there is no feature evidence package yet
+- NOTE: do NOT run `validate-trackers.py --all-feature-evidence` as plan closeout; repo-wide feature evidence validation is an explicit health/audit action
 
 CONFLICT RESOLUTION:
 - PRD vs architecture conflict → resolve in Phase B before architecture approval; do not silently change PRD

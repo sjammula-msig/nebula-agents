@@ -12,6 +12,8 @@ Validates planning tracker consistency across:
 Usage:
     python3 agents/product-manager/scripts/validate-trackers.py
     python3 agents/product-manager/scripts/validate-trackers.py --features-dir {PRODUCT_ROOT}/planning-mds/features --blueprint {PRODUCT_ROOT}/planning-mds/BLUEPRINT.md
+    python3 agents/product-manager/scripts/validate-trackers.py --feature F0038 --run-id 2026-06-30-dbc93ab5
+    python3 agents/product-manager/scripts/validate-trackers.py --all-feature-evidence
 """
 
 from __future__ import annotations
@@ -794,7 +796,11 @@ class TrackerValidator:
 
 
 def _invoke_feature_evidence_validator(
-    product_root: Path, feature: str | None, run_id: str | None
+    product_root: Path,
+    feature: str | None,
+    run_id: str | None,
+    *,
+    all_feature_evidence: bool = False,
 ) -> int:
     """Call validate-feature-evidence.py at --stage G6.
 
@@ -804,6 +810,13 @@ def _invoke_feature_evidence_validator(
     appended to lifecycle-gates.log.
     """
     import subprocess
+
+    if not feature and not all_feature_evidence:
+        print(
+            "\nFeature evidence validation: not requested "
+            "(use --feature for scoped validation or --all-feature-evidence for a repo-wide audit)."
+        )
+        return 0
 
     script = Path(__file__).resolve().parent / "validate-feature-evidence.py"
     cmd = [
@@ -843,14 +856,24 @@ def main() -> int:
     parser.add_argument(
         "--run-id",
         default=None,
-        help="In-progress run ID to pass through to validate-feature-evidence.py at --stage G6",
+        help="In-progress run ID to validate with --feature at --stage G6",
     )
     parser.add_argument(
         "--skip-feature-evidence",
         action="store_true",
         help="Skip the post-tracker call into validate-feature-evidence.py (testing / staged rollout)",
     )
+    parser.add_argument(
+        "--all-feature-evidence",
+        action="store_true",
+        help="After tracker validation, run repo-wide validate-feature-evidence.py at --stage G6",
+    )
     args = parser.parse_args()
+
+    if args.run_id and not args.feature:
+        parser.error("--run-id requires --feature; run IDs are feature-scoped")
+    if args.all_feature_evidence and args.feature:
+        parser.error("--all-feature-evidence cannot be combined with --feature")
 
     product_root = resolve_product_root(args.product_root)
     features_dir = Path(args.features_dir) if args.features_dir else product_root / "planning-mds" / "features"
@@ -861,11 +884,23 @@ def main() -> int:
 
     if args.skip_feature_evidence:
         return tracker_exit
+    if not args.feature and not args.all_feature_evidence:
+        print(
+            "\nFeature evidence validation: not requested "
+            "(use --feature for scoped validation or --all-feature-evidence for a repo-wide audit)."
+        )
+        return tracker_exit
 
-    # §22 integration: tracker validation calls feature-evidence at --stage G6.
-    # Tracker exit code stays authoritative for tracker concerns; feature-evidence
-    # exit is or'd in to surface evidence issues without masking tracker failures.
-    fe_exit = _invoke_feature_evidence_validator(product_root, args.feature, args.run_id)
+    # §22 integration: scoped or explicit repo-wide tracker validation can call
+    # feature-evidence at --stage G6. Tracker exit code stays authoritative for
+    # tracker concerns; feature-evidence exit is or'd in to surface evidence
+    # issues without masking tracker failures.
+    fe_exit = _invoke_feature_evidence_validator(
+        product_root,
+        args.feature,
+        args.run_id,
+        all_feature_evidence=args.all_feature_evidence,
+    )
     if tracker_exit != 0:
         return tracker_exit
     return fe_exit

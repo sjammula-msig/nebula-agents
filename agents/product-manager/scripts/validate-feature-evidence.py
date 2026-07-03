@@ -53,6 +53,7 @@ FRAMEWORK_ROOT = Path(__file__).resolve().parents[3]
 SCRIPT_DIR = Path(__file__).resolve().parent
 TERMINAL_FEATURE_STATES = {"done", "completed", "archived"}
 RETIRED_FEATURE_STATES = {"abandoned", "superseded"}
+PRODUCT_ROOT_ARTIFACT_PREFIXES = ("planning-mds", "engine", "experience", "neuron", "bruno", "scripts")
 
 # §10 artifact dependency on the manifest scope booleans.
 RUNTIME_PREFLIGHT_FILE = "g1-runtime-preflight.md"
@@ -401,6 +402,17 @@ class Result:
 
 
 @dataclass(frozen=True)
+class ArtifactResolution:
+    original: str
+    normalized_path: Path | None
+    display_path: str
+    exists: bool
+    warning_kind: str | None = None
+    error_kind: str | None = None
+    is_url: bool = False
+
+
+@dataclass(frozen=True)
 class RegistryRow:
     section: str
     feature_id: str
@@ -508,6 +520,201 @@ def load_json_file(path: Path) -> tuple[Any | None, str | None]:
         return None, f"unparseable JSON: {exc}"
     except OSError as exc:
         return None, f"read error: {exc}"
+
+
+def _path_from_reference(value: str) -> Path:
+    parts = [part for part in value.replace("\\", "/").split("/") if part]
+    return Path(*parts) if parts else Path()
+
+
+def _path_exists(path: Path) -> bool:
+    try:
+        return path.exists()
+    except OSError:
+        return False
+
+
+def _is_url_reference(value: str) -> bool:
+    # Existing behavior skipped command artifacts beginning with "http".
+    return value.strip().startswith("http")
+
+
+def _is_absolute_reference(value: str) -> bool:
+    normalized = value.replace("\\", "/")
+    return normalized.startswith("/") or bool(re.match(r"^[A-Za-z]:/", normalized))
+
+
+def _contains_parent_reference(value: str) -> bool:
+    return ".." in [part for part in value.replace("\\", "/").split("/") if part]
+
+
+def _relative_to_product_root(product_root: Path, target: Path) -> str:
+    try:
+        return target.resolve(strict=False).relative_to(product_root.resolve(strict=False)).as_posix()
+    except ValueError:
+        return str(target)
+
+
+def _is_under_product_root(product_root: Path, target: Path) -> bool:
+    try:
+        target.resolve(strict=False).relative_to(product_root.resolve(strict=False))
+    except ValueError:
+        return False
+    return True
+
+
+def _recognized_product_suffix(value: str) -> str | None:
+    parts = [part for part in value.replace("\\", "/").split("/") if part]
+    for index, part in enumerate(parts):
+        if part in PRODUCT_ROOT_ARTIFACT_PREFIXES:
+            return "/".join(parts[index:])
+    return None
+
+
+def _is_scratch_reference(value: str) -> bool:
+    normalized = value.replace("\\", "/")
+    return normalized in {"/tmp", "/var/tmp"} or normalized.startswith(("/tmp/", "/var/tmp/"))
+
+
+def _relative_artifact_target(product_root: Path, run_folder: Path | None, value: str) -> Path:
+    cleaned = value.replace("\\", "/").lstrip("./")
+    first = next((part for part in cleaned.split("/") if part), "")
+    base = product_root if run_folder is None or first in PRODUCT_ROOT_ARTIFACT_PREFIXES else run_folder
+    return base / _path_from_reference(cleaned)
+
+
+def resolve_artifact_reference(product_root: Path, run_folder: Path | None, value: str) -> ArtifactResolution:
+    cleaned = strip_code(value)
+    if not cleaned:
+        return ArtifactResolution(value, None, value, False, error_kind="artifact_missing_fails")
+    if _is_url_reference(cleaned):
+        return ArtifactResolution(value, None, cleaned, True, is_url=True)
+
+    if cleaned.startswith("{PRODUCT_ROOT}"):
+        suffix = cleaned[len("{PRODUCT_ROOT}") :].lstrip("/\\")
+        target = product_root / _path_from_reference(suffix)
+        exists = _path_exists(target)
+        return ArtifactResolution(
+            value,
+            target,
+            _relative_to_product_root(product_root, target),
+            exists,
+            warning_kind="placeholder_artifact_path_normalized_warns" if exists else None,
+            error_kind=None if exists else "artifact_missing_fails",
+        )
+
+    if _contains_parent_reference(cleaned):
+        return ArtifactResolution(value, None, cleaned, False, error_kind="artifact_missing_fails")
+
+    if _is_absolute_reference(cleaned):
+        normalized = cleaned.replace("\\", "/")
+        if normalized.startswith("/"):
+            absolute_target = Path(normalized)
+            if _is_under_product_root(product_root, absolute_target):
+                exists = _path_exists(absolute_target)
+                return ArtifactResolution(
+                    value,
+                    absolute_target,
+                    _relative_to_product_root(product_root, absolute_target),
+                    exists,
+                    warning_kind="absolute_artifact_under_product_root_warns" if exists else None,
+                    error_kind=None if exists else "artifact_missing_fails",
+                )
+        if _is_scratch_reference(cleaned):
+            return ArtifactResolution(value, None, cleaned, False, error_kind="scratch_artifact_fails")
+        suffix = _recognized_product_suffix(cleaned)
+        if suffix:
+            target = product_root / _path_from_reference(suffix)
+            exists = _path_exists(target)
+            return ArtifactResolution(
+                value,
+                target,
+                _relative_to_product_root(product_root, target),
+                exists,
+                warning_kind="legacy_absolute_artifact_relocated_warns" if exists else None,
+                error_kind=None if exists else "artifact_missing_fails",
+            )
+        return ArtifactResolution(value, None, cleaned, False, error_kind="unmappable_absolute_artifact_fails")
+
+    target = _relative_artifact_target(product_root, run_folder, cleaned)
+    exists = _path_exists(target)
+    return ArtifactResolution(
+        value,
+        target,
+        _relative_to_product_root(product_root, target),
+        exists,
+        error_kind=None if exists else "artifact_missing_fails",
+    )
+
+
+def add_artifact_resolution_warning(
+    result: Result,
+    resolution: ArtifactResolution,
+    context: str,
+    **common: str,
+) -> None:
+    if not resolution.warning_kind:
+        return
+    result.add_warning(
+        resolution.warning_kind,
+        f"{context} {resolution.original!r} normalized to {resolution.display_path!r}",
+        **common,
+    )
+
+
+def add_artifact_resolution_error(
+    result: Result,
+    resolution: ArtifactResolution,
+    context: str,
+    **common: str,
+) -> None:
+    if not resolution.error_kind:
+        return
+    if resolution.error_kind == "scratch_artifact_fails":
+        message = f"{context} {resolution.original!r} is a scratch/local path and is not durable evidence"
+    elif resolution.error_kind == "unmappable_absolute_artifact_fails":
+        message = f"{context} {resolution.original!r} is absolute and cannot be mapped to the current product root"
+    else:
+        message = f"{context} {resolution.original!r} does not resolve to an existing artifact"
+        if resolution.display_path and resolution.display_path != resolution.original:
+            message += f" at {resolution.display_path!r}"
+    result.add_error(resolution.error_kind, message, **common)
+
+
+def validate_artifact_reference(
+    result: Result,
+    product_root: Path,
+    run_folder: Path | None,
+    value: str,
+    context: str,
+    *,
+    missing_rule_id: str | None = None,
+    missing_message: str | None = None,
+    generic_missing: bool = True,
+    **common: str,
+) -> ArtifactResolution:
+    resolution = resolve_artifact_reference(product_root, run_folder, value)
+    if resolution.is_url:
+        return resolution
+    add_artifact_resolution_warning(result, resolution, context, **common)
+    if resolution.error_kind == "artifact_missing_fails":
+        if generic_missing:
+            add_artifact_resolution_error(result, resolution, context, **common)
+        if missing_rule_id:
+            result.add_error(
+                missing_rule_id,
+                missing_message or f"{context} {value!r} does not resolve",
+                **common,
+            )
+    elif resolution.error_kind:
+        add_artifact_resolution_error(result, resolution, context, **common)
+    return resolution
+
+
+def artifact_references(content: str, relative_prefix: str) -> list[str]:
+    prefix = re.escape(relative_prefix)
+    pattern = re.compile(rf"(?:\{{PRODUCT_ROOT\}}[\\/]|[A-Za-z]:[\\/]|/)?[^\s)\]]*{prefix}[^\s)\]]+")
+    return pattern.findall(content)
 
 
 # --------------------------------------------------------------------------- #
@@ -1215,8 +1422,12 @@ def validate_manifest_deep(
     if isinstance(scm, dict):
         diff_artifact = scm.get("diff_artifact", "")
         if isinstance(diff_artifact, str) and diff_artifact:
-            absolute, traverses = _is_repo_relative(diff_artifact)
-            if absolute or traverses:
+            resolution = resolve_artifact_reference(result.product_root, manifest_path.parent, diff_artifact)
+            if (
+                _contains_parent_reference(diff_artifact)
+                or resolution.error_kind in {"scratch_artifact_fails", "unmappable_absolute_artifact_fails"}
+                or resolution.is_url
+            ):
                 result.add_error(
                     "manifest_scm_diff_path_malformed_fails",
                     "scm.diff_artifact must be a run-folder-relative path with no '..' segments",
@@ -1237,10 +1448,10 @@ def validate_manifest_deep(
         for key, value in files.items():
             if not isinstance(value, str) or not value:
                 continue
-            absolute, traverses = _is_repo_relative(value)
-            if absolute:
+            resolution = resolve_artifact_reference(result.product_root, manifest_path.parent, value)
+            if resolution.error_kind in {"scratch_artifact_fails", "unmappable_absolute_artifact_fails"}:
                 result.add_error("manifest_file_path_absolute_fails", f"files[{key!r}] must not be absolute: {value!r}", **common)
-            if traverses:
+            if _contains_parent_reference(value):
                 result.add_error("manifest_file_path_traversal_fails", f"files[{key!r}] must not contain '..': {value!r}", **common)
 
     # waivers shape
@@ -1296,8 +1507,17 @@ def validate_manifest_deep(
                             **common,
                         )
                         continue
-                    absolute, traverses = _is_repo_relative(artifact)
-                    if absolute or traverses or not (manifest_path.parent / artifact).exists():
+                    resolution = validate_artifact_reference(
+                        result,
+                        result.product_root,
+                        manifest_path.parent,
+                        artifact,
+                        f"security_scans[{scan_class!r}] artifact",
+                        missing_rule_id="security_scan_unbacked_fails",
+                        missing_message=f"security_scans[{scan_class!r}] artifact does not resolve under the run folder: {artifact!r}",
+                        **common,
+                    )
+                    if resolution.error_kind in {"scratch_artifact_fails", "unmappable_absolute_artifact_fails"}:
                         result.add_error(
                             "security_scan_unbacked_fails",
                             f"security_scans[{scan_class!r}] artifact does not resolve under the run folder: {artifact!r}",
@@ -1616,14 +1836,20 @@ def validate_commands_log(
             for artifact in artifacts:
                 if not isinstance(artifact, str):
                     continue
-                if artifact and not artifact.startswith("http") and not (result.product_root / artifact).exists():
-                    result.add_error(
-                        "commands_log_artifact_missing_fails",
-                        f"commands.log line {line_no} references missing artifact {artifact!r}",
-                        feature=feature_id,
-                        run_id=run_id,
-                        path=str(path),
-                    )
+                if not artifact:
+                    continue
+                validate_artifact_reference(
+                    result,
+                    result.product_root,
+                    run_folder,
+                    artifact,
+                    f"commands.log line {line_no} artifact",
+                    missing_rule_id="commands_log_artifact_missing_fails",
+                    missing_message=f"commands.log line {line_no} references missing artifact {artifact!r}",
+                    feature=feature_id,
+                    run_id=run_id,
+                    path=str(path),
+                )
         parsed_records.append((line_no, record, record_scanning_surface(record)))
 
     status = manifest.get("status")
@@ -2035,14 +2261,18 @@ def validate_status_md(row: RegistryRow, manifest: dict[str, Any], run_folder: P
                 )
             evidence_value = strip_code(entry.get("evidence", ""))
             if evidence_value:
-                resolved = result.product_root / evidence_value.lstrip("/")
                 expected_prefix = canonical_run_root
-                # Some products encode evidence as just a filename relative to the run folder.
-                if not resolved.exists():
-                    alt = canonical_run_root / evidence_value
-                    if alt.exists():
-                        resolved = alt
-                if not resolved.exists():
+                resolution = validate_artifact_reference(
+                    result,
+                    result.product_root,
+                    canonical_run_root,
+                    evidence_value,
+                    f"STATUS.md row ({story}, {role}) evidence path",
+                    generic_missing=False,
+                    **common,
+                )
+                resolved = resolution.normalized_path
+                if not resolution.exists or resolved is None:
                     result.add_error(
                         "status_evidence_missing_file_fails",
                         f"STATUS.md row ({story}, {role}) evidence path {evidence_value!r} does not resolve",
@@ -2164,13 +2394,16 @@ def validate_role_and_gate_results(
             )
         artifact_value = entry.get("artifact")
         if isinstance(artifact_value, str) and artifact_value:
-            artifact_target = run_folder / artifact_value
-            if not artifact_target.exists():
-                result.add_error(
-                    "manifest_file_path_missing_fails",
-                    f"gate_results.{key}.artifact does not resolve: {artifact_value!r}",
-                    **common,
-                )
+            validate_artifact_reference(
+                result,
+                result.product_root,
+                run_folder,
+                artifact_value,
+                f"gate_results.{key}.artifact",
+                missing_rule_id="manifest_file_path_missing_fails",
+                missing_message=f"gate_results.{key}.artifact does not resolve: {artifact_value!r}",
+                **common,
+            )
 
     # role_results shape + verdicts
     role_results = manifest.get("role_results")
@@ -2214,13 +2447,16 @@ def validate_role_and_gate_results(
             )
         verdict_artifact = entry.get("verdict_artifact")
         if verdict_artifact and isinstance(verdict_artifact, str):
-            target = run_folder / verdict_artifact
-            if not target.exists():
-                result.add_error(
-                    "manifest_file_path_missing_fails",
-                    f"role_results[{role_name!r}].verdict_artifact does not resolve: {verdict_artifact!r}",
-                    **common,
-                )
+            validate_artifact_reference(
+                result,
+                result.product_root,
+                run_folder,
+                verdict_artifact,
+                f"role_results[{role_name!r}].verdict_artifact",
+                missing_rule_id="manifest_file_path_missing_fails",
+                missing_message=f"role_results[{role_name!r}].verdict_artifact does not resolve: {verdict_artifact!r}",
+                **common,
+            )
 
     # required_roles array
     declared_roles = manifest.get("required_roles")
@@ -2246,16 +2482,18 @@ def validate_role_and_gate_results(
         for key, value in files.items():
             if not isinstance(value, str) or not value:
                 continue
-            absolute, traverses = _is_repo_relative(value)
-            if absolute or traverses:
-                continue  # already covered by manifest_file_path_*_fails
-            target = run_folder / value
-            if not target.exists():
-                result.add_error(
-                    "manifest_file_path_missing_fails",
-                    f"Manifest files[{key!r}]={value!r} does not exist",
-                    **common,
-                )
+            if _contains_parent_reference(value):
+                continue  # already covered by manifest_file_path_traversal_fails
+            validate_artifact_reference(
+                result,
+                result.product_root,
+                run_folder,
+                value,
+                f"Manifest files[{key!r}]",
+                missing_rule_id="manifest_file_path_missing_fails",
+                missing_message=f"Manifest files[{key!r}]={value!r} does not exist",
+                **common,
+            )
 
     # omissions — must not reference required role/gate artifacts
     omissions = manifest.get("omissions") or []
@@ -2298,13 +2536,16 @@ def validate_role_and_gate_results(
             elif isinstance(value, list):
                 candidates = [str(item) for item in value if isinstance(item, str)]
             for path_value in candidates:
-                target = relative_json_path(result.product_root, path_value)
-                if not target.exists():
-                    result.add_error(
-                        "manifest_global_ref_missing_fails",
-                        f"global_evidence_refs[{key!r}] does not resolve: {path_value!r}",
-                        **common,
-                    )
+                validate_artifact_reference(
+                    result,
+                    result.product_root,
+                    run_folder,
+                    path_value,
+                    f"global_evidence_refs[{key!r}]",
+                    missing_rule_id="manifest_global_ref_missing_fails",
+                    missing_message=f"global_evidence_refs[{key!r}] does not resolve: {path_value!r}",
+                    **common,
+                )
 
     # waiver-mirror checks
     waivers = manifest.get("waivers")
@@ -2433,10 +2674,24 @@ def validate_scm_diff(
             # already covered by manifest_scm_diff_missing_fails
             return
         return  # evidence-only rerun, diff may be empty
-    diff_path = run_folder / diff_artifact
     feature_id = row.feature_id
     run_id = manifest.get("run_id") if isinstance(manifest.get("run_id"), str) else None
-    common = {"feature": feature_id, "run_id": run_id, "path": str(diff_path)}
+    resolution = validate_artifact_reference(
+        result,
+        result.product_root,
+        run_folder,
+        diff_artifact,
+        "scm.diff_artifact",
+        missing_rule_id="manifest_scm_diff_missing_fails",
+        missing_message=f"scm.diff_artifact {diff_artifact!r} does not resolve",
+        feature=feature_id,
+        run_id=run_id,
+        path=str(run_folder / diff_artifact),
+    )
+    diff_path = resolution.normalized_path
+    common = {"feature": feature_id, "run_id": run_id, "path": str(diff_path or run_folder / diff_artifact)}
+    if resolution.error_kind or diff_path is None:
+        return
 
     diff_paths, error = parse_scm_diff_file(diff_path)
     if error == "missing":
@@ -2787,20 +3042,19 @@ def validate_command_artifact_filesystem(
         for artifact in artifacts:
             if not isinstance(artifact, str) or not artifact:
                 continue
-            if artifact.startswith("http"):
-                continue
-            absolute, traverses = _is_repo_relative(artifact)
-            if absolute or traverses:
-                continue
-            resolved = result.product_root / artifact
-            if not resolved.exists():
-                result.add_error(
-                    "command_artifact_missing_fails",
-                    f"commands.log line {line_no} artifact {artifact!r} does not resolve under product root",
-                    feature=feature_id,
-                    run_id=run_id,
-                    path=str(path),
-                )
+            validate_artifact_reference(
+                result,
+                result.product_root,
+                run_folder,
+                artifact,
+                f"commands.log line {line_no} artifact",
+                missing_rule_id="command_artifact_missing_fails",
+                missing_message=f"commands.log line {line_no} artifact {artifact!r} does not resolve under product root",
+                generic_missing=False,
+                feature=feature_id,
+                run_id=run_id,
+                path=str(path),
+            )
 
 
 def validate_phase2b_additional_rules(
@@ -2858,10 +3112,21 @@ def validate_phase2b_additional_rules(
     pm_entry = role_results.get("Product Manager") if isinstance(role_results, dict) else None
     if isinstance(pm_entry, dict) and pm_entry.get("required") is True:
         verdict_artifact = pm_entry.get("verdict_artifact")
-        if not isinstance(verdict_artifact, str) or not verdict_artifact or not (run_folder / verdict_artifact).exists():
+        if not isinstance(verdict_artifact, str) or not verdict_artifact:
             result.add_error(
                 "pm_role_required_missing_report_fails",
                 "Product Manager is required in role_results but its verdict_artifact is missing",
+                **common,
+            )
+        else:
+            validate_artifact_reference(
+                result,
+                result.product_root,
+                run_folder,
+                verdict_artifact,
+                "Product Manager verdict_artifact",
+                missing_rule_id="pm_role_required_missing_report_fails",
+                missing_message="Product Manager is required in role_results but its verdict_artifact is missing",
                 **common,
             )
 
@@ -2916,13 +3181,18 @@ def validate_phase2b_additional_rules(
         [v for v in fq_ref if isinstance(v, str)] if isinstance(fq_ref, list) else []
     )
     for candidate in fq_candidates:
-        target = relative_json_path(result.product_root, candidate)
-        if not target.exists():
-            result.add_error(
-                "frontend_global_ref_missing_fails",
-                f"frontend_quality reference {candidate!r} does not resolve",
-                **common,
-            )
+        resolution = validate_artifact_reference(
+            result,
+            result.product_root,
+            run_folder,
+            candidate,
+            "frontend_quality reference",
+            missing_rule_id="frontend_global_ref_missing_fails",
+            missing_message=f"frontend_quality reference {candidate!r} does not resolve",
+            **common,
+        )
+        target = resolution.normalized_path
+        if not resolution.exists or target is None:
             continue
         loaded, _ = load_json_file(target)
         if not isinstance(loaded, dict):
@@ -2943,13 +3213,16 @@ def validate_phase2b_additional_rules(
         [v for v in fux_ref if isinstance(v, str)] if isinstance(fux_ref, list) else []
     )
     for candidate in fux_candidates:
-        target = relative_json_path(result.product_root, candidate)
-        if not target.exists():
-            result.add_error(
-                "frontend_ux_ref_missing_fails",
-                f"frontend_ux reference {candidate!r} does not resolve",
-                **common,
-            )
+        validate_artifact_reference(
+            result,
+            result.product_root,
+            run_folder,
+            candidate,
+            "frontend_ux reference",
+            missing_rule_id="frontend_ux_ref_missing_fails",
+            missing_message=f"frontend_ux reference {candidate!r} does not resolve",
+            **common,
+        )
 
     # frontend_true_without_feature_test_notes_fails / frontend_global_substituted_for_feature_report_fails.
     if manifest.get("frontend_in_scope") is True and stage in {"G2", "G3", "G4", "G5", "G6", "G7", "G8", "closeout"}:
@@ -2986,38 +3259,54 @@ def validate_phase2b_additional_rules(
 
     # Artifact-reference cross-checks (§10 / §21).
     coverage_content = safe_read(run_folder / "coverage-report.md") or ""
-    for ref in re.findall(r"artifacts/coverage/[^\s)\]]+", coverage_content):
-        if not (run_folder / ref).exists():
-            result.add_error(
-                "coverage_claim_without_artifact_fails",
-                f"coverage-report.md references {ref!r} but the artifact is missing",
-                **common,
-            )
+    for ref in artifact_references(coverage_content, "artifacts/coverage/"):
+        validate_artifact_reference(
+            result,
+            result.product_root,
+            run_folder,
+            ref,
+            "coverage-report.md artifact reference",
+            missing_rule_id="coverage_claim_without_artifact_fails",
+            missing_message=f"coverage-report.md references {ref!r} but the artifact is missing",
+            **common,
+        )
     te_content = safe_read(run_folder / "test-execution-report.md") or ""
-    for ref in re.findall(r"artifacts/test-results/[^\s)\]]+", te_content):
-        if not (run_folder / ref).exists():
-            result.add_error(
-                "test_results_reference_missing_fails",
-                f"test-execution-report.md references {ref!r} but the artifact is missing",
-                **common,
-            )
+    for ref in artifact_references(te_content, "artifacts/test-results/"):
+        validate_artifact_reference(
+            result,
+            result.product_root,
+            run_folder,
+            ref,
+            "test-execution-report.md artifact reference",
+            missing_rule_id="test_results_reference_missing_fails",
+            missing_message=f"test-execution-report.md references {ref!r} but the artifact is missing",
+            **common,
+        )
     sec_content = safe_read(run_folder / "security-review-report.md") or ""
-    for ref in re.findall(r"artifacts/security/[^\s)\]]+", sec_content):
-        if not (run_folder / ref).exists():
-            result.add_error(
-                "security_scan_reference_missing_fails",
-                f"security-review-report.md references {ref!r} but the artifact is missing",
-                **common,
-            )
+    for ref in artifact_references(sec_content, "artifacts/security/"):
+        validate_artifact_reference(
+            result,
+            result.product_root,
+            run_folder,
+            ref,
+            "security-review-report.md artifact reference",
+            missing_rule_id="security_scan_reference_missing_fails",
+            missing_message=f"security-review-report.md references {ref!r} but the artifact is missing",
+            **common,
+        )
     for source in ("test-execution-report.md", "code-review-report.md"):
         body = safe_read(run_folder / source) or ""
-        for ref in re.findall(r"artifacts/screenshots/[^\s)\]]+", body):
-            if not (run_folder / ref).exists():
-                result.add_error(
-                    "screenshot_reference_missing_fails",
-                    f"{source} references {ref!r} but the screenshot is missing",
-                    **common,
-                )
+        for ref in artifact_references(body, "artifacts/screenshots/"):
+            validate_artifact_reference(
+                result,
+                result.product_root,
+                run_folder,
+                ref,
+                f"{source} screenshot reference",
+                missing_rule_id="screenshot_reference_missing_fails",
+                missing_message=f"{source} references {ref!r} but the screenshot is missing",
+                **common,
+            )
 
     # changed_paths_mismatch_fails (§21) — role reports may mention paths that
     # the manifest's changed_paths does not cover. Limited to the obvious

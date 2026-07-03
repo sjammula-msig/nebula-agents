@@ -299,6 +299,13 @@ Validators must not create or consume `current-run.json`, and must not infer the
 
 When publishing a newly approved run, closeout must first run `agents/product-manager/scripts/patch-prior-manifest.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --new-run-id {RUN_ID}` to mark prior approved manifests for the feature as `superseded`. Only after that helper exits 0 may closeout write the feature's new `latest-run.json`. If the helper fails, do not publish the new pointer; follow the partial-closeout recovery guidance in `agents/docs/MANUAL-ORCHESTRATION-RUNBOOK.md`.
 
+### Validation Modes
+
+- Plan runs perform tracker/base-run validation only: `python3 agents/product-manager/scripts/validate-trackers.py --product-root {PRODUCT_ROOT} --skip-feature-evidence`. Plan operators must not call `validate-feature-evidence.py` for the current plan run. Plan closeout also records a dependency impact evidence audit for direct or impacted feature dependencies; automated dependency discovery/validation may be added by a later framework step.
+- Feature gates `G0` through `G6` run scoped evidence validation for the current feature/run: `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID} --stage <GATE>`.
+- Feature closeout runs scoped current feature/run validation: closeout evidence via `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --stage closeout`, and tracker sync via `python3 agents/product-manager/scripts/validate-trackers.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID}`.
+- Repo health/audit validation is explicit only: `python3 agents/product-manager/scripts/validate-trackers.py --product-root {PRODUCT_ROOT} --all-feature-evidence` performs repo-wide feature-evidence validation after tracker validation. This mode is not an implicit blocker for every plan or feature closeout.
+
 ### Global Frontend Lanes
 
 `planning-mds/operations/evidence/frontend-quality/` and `planning-mds/operations/evidence/frontend-ux/` remain valid global lanes. They may be referenced from feature evidence (`global_evidence_refs` in the manifest) but do not substitute for feature-level role reports.
@@ -306,6 +313,6 @@ When publishing a newly approved run, closeout must first run `agents/product-ma
 ### Validators
 
 - `agents/product-manager/scripts/validate-feature-evidence.py` — feature evidence package consistency, effective-date eligibility, manifest schema, role/gate reconciliation, stage validation, and cross-artifact checks.
-- `agents/product-manager/scripts/validate-trackers.py` — tracker/registry consistency; invokes feature-evidence validation at `--stage G6` for governed feature closeout without creating a circular dependency on final closeout evidence.
+- `agents/product-manager/scripts/validate-trackers.py` — tracker/registry consistency. Tracker-only/base-run validation is available with `--skip-feature-evidence`; scoped feature closeout validation uses `--feature {FEATURE_ID} --run-id {RUN_ID}` and invokes feature-evidence validation at `--stage G6`; repo-wide feature-evidence validation requires explicit `--all-feature-evidence`.
 - `agents/product-manager/scripts/patch-prior-manifest.py` — closeout supersession helper called before writing `latest-run.json`.
 - `agents/scripts/validate_templates.py` — template/action alignment, including evidence-template alignment rules.
