@@ -84,7 +84,9 @@ report (duplicates, similarities, overlaps).
 
 **Depends On:** F0006-S0004 (shard contract), F0006-S0001 (canonical serializer).
 **Related Stories:** F0006-S0006 (round-trip uses `--check`), F0006-S0008 (CI wraps `--check`),
-F0006-S0007 (tracker generation joins the driver).
+F0006-S0007 (tracker generation joins the driver), F0006-S0009 (the evidence-contract matchers in
+`validate-feature-evidence.py` must learn the `compile.py` flow once it becomes the sanctioned
+regeneration entry point — today they match only `validate.py --regenerate-*` command strings).
 
 ## Business Rules
 

@@ -42,6 +42,11 @@ specified now so every edit target is inventoried up front (PRD "Framework Edit 
   shard `path:`/`status:` edit + recompile; exit validation includes `--check-reproducible`.
 - Prompts: `feature-operator-friendly.md` reconciled; `integrate-operator-friendly.md` exists
   (S0003) and is referenced by the runbook.
+- The 2026-07-05 "Enforce generated KG regeneration" surfaces (commit `d18909b`): `build.md`,
+  `plan.md`, and the feature/build/plan automation-safe + operator-friendly prompts carry Phase-A
+  regeneration commands and authored-file instructions — all reconciled to the compile-driven
+  flow. `validate-feature-evidence.py`'s generated-KG command matchers learn `compile.py` (gated
+  on a new `contract_effective_date` so earlier evidence stays valid), with tests updated.
 - Docs: `KNOWLEDGE-GRAPH.md` (classification, shard schema, compile flow, logical refs, merge
   taxonomy, `depends_on` single-home), `ORCHESTRATION-CONTRACT.md` (integrator role + sole-writer
   rule + routing), `MANUAL-ORCHESTRATION-RUNBOOK.md` (maintainer integration procedure).
@@ -102,7 +107,7 @@ S0001–S0008.
 
 **Assumptions (to be validated):**
 - The PRD inventory is complete; the audit includes a sweep for uninventoried mentions
-  (`grep -ri 'canonical-nodes\|feature-mappings\|code-index' agents/`).
+  (`grep -ri 'canonical-nodes\|feature-mappings\|code-index\|regenerate-symbols\|regenerate-decisions' agents/`).
 
 ## Definition of Done
 

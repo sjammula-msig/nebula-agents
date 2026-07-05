@@ -54,6 +54,7 @@
 - [ ] `feature-operator-friendly.md` prompt reconciled
 - [ ] `agents/docs/KNOWLEDGE-GRAPH.md` / `ORCHESTRATION-CONTRACT.md` / `MANUAL-ORCHESTRATION-RUNBOOK.md` updated
 - [ ] Templates updated: `kg-reconciliation`, `feature-assembly-plan`, `tracker-governance`, `feature-registry`, `ci-gates`
+- [ ] 2026-07-05 KG-regeneration enforcement surfaces reconciled for Phase B: `build.md`, `plan.md`, feature/build/plan prompt variants; `validate-feature-evidence.py` matchers learn `compile.py` (+ tests)
 
 ## Cross-Cutting
 

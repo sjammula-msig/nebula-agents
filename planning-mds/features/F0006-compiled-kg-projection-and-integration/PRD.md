@@ -450,7 +450,10 @@ single revert.
 | `agents/actions/integrate.md` | **New** action: the integration run procedure, inputs, gates (feature-review precondition, human-test-validation pause), bounce rules |
 | `agents/actions/README.md`, `agents/ROUTER.md` | Route/announce the new action |
 | `agents/actions/feature.md` | G7: architect authors shards (logical refs only); G8: archive = feature-shard `path:`/`status:` edit + recompile — delete the off-book repoint narrative |
+| `agents/actions/build.md`, `agents/actions/plan.md` | Phase B: the 2026-07-05 "Enforce generated KG regeneration" gate commands (`--regenerate-symbols`/`--regenerate-decisions`/`--write-coverage-report`) switch to the `compile.py`-driven flow; authored-file wording (canonical-nodes/code-index) reconciled to shards |
 | `agents/templates/prompts/evidence-contract/feature-operator-friendly.md` | Same reconciliation (the "code paths only, stable across archive" claim becomes true) |
+| `agents/templates/prompts/evidence-contract/feature-automation-safe.md`, `build-automation-safe.md`, `build-operator-friendly.md`, `plan-automation-safe.md`, `plan-operator-friendly.md` | Same reconciliation — these carry the same 2026-07-05 KG-regeneration enforcement lines and Phase-A authored-file instructions |
+| `agents/product-manager/scripts/validate-feature-evidence.py` (+ its tests) | Phase B: the generated-KG regeneration command matchers must accept the `compile.py` flow (today they match only `validate.py --regenerate-*` / `symbols.py` / `decisions.py`); gate the change on a new `contract_effective_date`, as the 2026-07-05 rule did |
 | `agents/templates/prompts/evidence-contract/integrate-operator-friendly.md` | **New** operator prompt for integration runs |
 | `agents/docs/KNOWLEDGE-GRAPH.md` | Source/generated classification, shard schema, compile flow, logical refs, merge taxonomy |
 | `agents/docs/ORCHESTRATION-CONTRACT.md` | Integrator role, mainline generated-file ownership, conflict routing |
