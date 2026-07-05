@@ -1006,9 +1006,10 @@ Before Build Complete, verify required role signoffs across delivered features:
 5. Record deferred follow-ups, known mitigations, and orphaned story handling before tracker validation
 6. **Knowledge-graph validation:**
    - Confirm implementation agents added `code-index.yaml` bindings for new source files created during the build. If bindings are missing, add them now.
-   - Run `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --check-drift` and resolve any errors before proceeding.
    - If the build introduced new canonical nodes or rationale entries, confirm they are present in `canonical-nodes.yaml`.
-   - Regenerate and validate the symbol layer: `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --regenerate-symbols --check-symbols`. Editing a bound method body without first consulting `lookup.py --symbol` (or `hint.py --symbol`) is forbidden — the symbol-layer routing aid keeps edits narrow.
+   - Regenerate and validate all code-path-derived generated layers: `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --regenerate-symbols --check-symbols --regenerate-decisions --check-decisions`. This refreshes `symbol-index.yaml`, `unbound-but-referenced.yaml`, and `decisions-index.yaml`; it cannot be skipped.
+   - Regenerate the path-sensitive coverage layer after any archive/path updates: `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --write-coverage-report`.
+   - Run `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --check-drift` and resolve any errors before proceeding.
    - Run `python3 {PRODUCT_ROOT}/scripts/kg/risk.py <node-id|--file|--symbol>` for the canonical nodes the build touched. For each node in the **high** band (`kg.risk` ≥ 7) confirm an additional reviewer is recorded on the PR; for each node in the **critical** band (`kg.risk` ≥ 9) confirm a `workstate.py decision --topic risk-acknowledgement` entry is referenced from the PR before merge. Weights/bands live in `agents/architect/references/risk-scoring-guide.md`.
 
 **Completion Criteria:**
@@ -1018,7 +1019,8 @@ Before Build Complete, verify required role signoffs across delivered features:
 - [ ] Ontology feature mappings updated if closeout changes feature path/status
 - [ ] Code-index bindings exist for new source files introduced during this build
 - [ ] `validate.py --check-drift` exits 0
-- [ ] `validate.py --regenerate-symbols --check-symbols` exits 0
+- [ ] `validate.py --regenerate-symbols --check-symbols --regenerate-decisions --check-decisions` exits 0
+- [ ] `validate.py --write-coverage-report` exits 0 after archive/path updates
 - [ ] `risk.py` run for touched canonical nodes; high-band PRs carry second-reviewer evidence and critical-band PRs reference a `workstate.py decision --topic risk-acknowledgement` entry
 
 ---

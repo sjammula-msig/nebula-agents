@@ -73,7 +73,7 @@ Close the run by executing these in order, each exit 0:
 - `python3 agents/product-manager/scripts/validate-stories.py {FEATURE_PATH}`
 - `python3 agents/product-manager/scripts/generate-story-index.py {PRODUCT_ROOT}/planning-mds/features/`
 - `python3 agents/product-manager/scripts/validate-trackers.py --product-root {PRODUCT_ROOT} --skip-feature-evidence`
-- IF KG changed: `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --write-coverage-report`
+- `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --write-coverage-report`
 - `python3 {PRODUCT_ROOT}/scripts/kg/validate.py`
 - `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --check-drift`
 - `python3 agents/scripts/validate_templates.py`

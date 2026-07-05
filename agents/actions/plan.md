@@ -112,7 +112,7 @@ Run in this order:
 1. `python3 agents/product-manager/scripts/validate-stories.py {FEATURE_PATH}`
 2. `python3 agents/product-manager/scripts/generate-story-index.py {PRODUCT_ROOT}/planning-mds/features/`
 3. `python3 agents/product-manager/scripts/validate-trackers.py --product-root {PRODUCT_ROOT} --skip-feature-evidence`
-4. `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --write-coverage-report` when KG changed
+4. `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --write-coverage-report`
 5. `python3 {PRODUCT_ROOT}/scripts/kg/validate.py`
 6. `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --check-drift`
 7. `python3 agents/scripts/validate_templates.py`

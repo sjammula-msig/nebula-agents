@@ -187,9 +187,9 @@ G7 ARCHITECT KG RECONCILIATION (Architect agent role switch is mandatory; runs a
      - MUST read agents/architect/SKILL.md before executing (explicit role switch)
      - Reconcile the SEMANTIC graph against the as-built source: add/update code-index.yaml bindings (directory-glob, not file-by-file; confirm existing-glob coverage rather than duplicating) and canonical-nodes.yaml for new capabilities/shared semantics; diff against the G0 "Knowledge-Graph Binding Plan" baseline
      - Bind CODE paths only (stable across the G8 archive move); do NOT run `--write-coverage-report` here (path-sensitive; deferred to G8 after the move)
-     - `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --regenerate-symbols --check-symbols` exit 0
+     - `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --regenerate-symbols --check-symbols --regenerate-decisions --check-decisions` exit 0 (refreshes symbol-index.yaml, unbound-but-referenced.yaml, and decisions-index.yaml; cannot be skipped)
      - `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --check-drift` exit 0
-     - Write {RUN_FOLDER}/kg-reconciliation.md (binding delta, new/affirmed canonical nodes, green symbol+drift results)
+     - Write {RUN_FOLDER}/kg-reconciliation.md (binding delta, new/affirmed canonical nodes, green generated-layer + drift results)
      - Manifest stays status="in-progress"; record gate_results.kg_reconciliation
 
 G8 PM CLOSEOUT (PM agent role switch is mandatory)
@@ -220,10 +220,9 @@ Checklist for G8 (PM Closeout) — run after G6 + tracker sync:
 - Update {PRODUCT_ROOT}/planning-mds/BLUEPRINT.md: feature/story status labels and links
 - IF overall_status in {Done|Completed}: move {FEATURE_PATH} to {ARCHIVE_FEATURE_PATH}/ and fix impacted links
 - Update {PRODUCT_ROOT}/planning-mds/knowledge-graph/feature-mappings.yaml: feature path, status, story status
-- Update {PRODUCT_ROOT}/planning-mds/knowledge-graph/code-index.yaml: bindings for every new source file introduced by this feature
-- Update canonical-nodes.yaml ONLY if new shared semantics introduced (route to Architect if so)
+- Do NOT author code-index.yaml / canonical-nodes.yaml in closeout — the Architect's G7 pass must already have reconciled them; route any gap back to G7
 - Capture orphaned stories and deferred follow-ups in pm-closeout.md
-- IF KG changed: `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --write-coverage-report`
+- `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --write-coverage-report` (mandatory after the G8 archive move)
 - `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --check-drift` MUST exit 0
 - Write pm-closeout.md (Final Story Status, Archive Decision, Deferred Follow-ups, Recommendation Acceptances, Tracker Updates, Validator Results)
 - Finalize evidence-manifest.json (status="approved")
@@ -256,9 +255,8 @@ EXIT VALIDATION (run in order; all exit 0; record evidence paths under {PRODUCT_
 - `python3 agents/product-manager/scripts/validate-trackers.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID}` (scoped tracker validation; calls feature-evidence at --stage G6 per §22)
 - After §17 step 4 (`patch-prior-manifest.py` then `latest-run.json`): `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --stage closeout`
 - `python3 agents/product-manager/scripts/generate-story-index.py {PRODUCT_ROOT}/planning-mds/features/` (if stories changed)
-- IF code in bound files changed: `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --regenerate-symbols`
-- IF KG changed: `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --write-coverage-report`
-- `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --check-symbols`
+- `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --regenerate-symbols --check-symbols --regenerate-decisions --check-decisions`
+- `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --write-coverage-report` (mandatory after the G8 archive move)
 - `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --check-drift`
 - `python3 agents/scripts/validate_templates.py`
 - `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --stage closeout --json` → capture to {RUN_FOLDER}/artifacts/feature-evidence-validation.json for post-hoc analysis

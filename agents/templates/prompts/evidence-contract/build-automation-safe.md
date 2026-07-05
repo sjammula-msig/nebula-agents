@@ -138,7 +138,8 @@ EXIT VALIDATION (run in order; all exit 0):
 - For each FEATURE_ID in BUILD_SCOPE: `validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --stage closeout`
 - `python3 agents/product-manager/scripts/validate-trackers.py`
 - `python3 agents/product-manager/scripts/generate-story-index.py {PRODUCT_ROOT}/planning-mds/features/`
-- `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --check-symbols`
+- `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --regenerate-symbols --check-symbols --regenerate-decisions --check-decisions`
+- `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --write-coverage-report`
 - `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --check-drift`
 - `python3 agents/scripts/validate_templates.py`
 

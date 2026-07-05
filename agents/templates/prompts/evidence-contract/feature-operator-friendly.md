@@ -101,9 +101,9 @@ At `G7 ARCHITECT KG RECONCILIATION`, do all of this:
 - `Update {PRODUCT_ROOT}/planning-mds/knowledge-graph/code-index.yaml: directory-glob bindings for every new capability/shared-semantic source surface (e.g. experience/src/features/forms/**); confirm existing-glob coverage rather than duplicating file-by-file`
 - `Update canonical-nodes.yaml for new shared semantics, or state "none introduced; reuses existing"`
 - `Do NOT run --write-coverage-report here (path-sensitive; deferred to G8 after the archive move)`
-- `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --regenerate-symbols --check-symbols MUST exit 0`
+- `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --regenerate-symbols --check-symbols --regenerate-decisions --check-decisions MUST exit 0` (refreshes `symbol-index.yaml`, `unbound-but-referenced.yaml`, and `decisions-index.yaml`; cannot be skipped)
 - `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --check-drift MUST exit 0`
-- Write `kg-reconciliation.md` (binding delta, new/affirmed canonical nodes, green symbol+drift results)
+- Write `kg-reconciliation.md` (binding delta, new/affirmed canonical nodes, green generated-layer + drift results)
 - Manifest stays `status=in-progress`; record `gate_results.kg_reconciliation`
 
 At `G8 PM CLOSEOUT`, do all of this:
@@ -117,7 +117,7 @@ At `G8 PM CLOSEOUT`, do all of this:
 - `Update {PRODUCT_ROOT}/planning-mds/knowledge-graph/feature-mappings.yaml: feature path, status, story status (lifecycle-coupled, PM-owned)`
 - `Do NOT author code-index.yaml / canonical-nodes.yaml here — that was the Architect's G7 work; closeout only verifies it is green`
 - `Capture orphaned stories and deferred follow-ups in pm-closeout.md`
-- `AFTER the archive move: python3 {PRODUCT_ROOT}/scripts/kg/validate.py --write-coverage-report (path-sensitive — binds the relocated feature-doc paths; running it before the move re-stales it)`
+- `AFTER the archive move: python3 {PRODUCT_ROOT}/scripts/kg/validate.py --write-coverage-report (mandatory; path-sensitive — binds the relocated feature-doc paths; running it before the move re-stales it)`
 - `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --check-drift MUST exit 0 on the post-move graph`
 - Write `pm-closeout.md` with `Final Story Status`, `Archive Decision`, `Deferred Follow-ups`, `Recommendation Acceptances`, `Tracker Updates`, `Validator Results`
 - Finalize `evidence-manifest.json`: set `status=approved`, `feature_state` in `{Done|Completed|Archived}`, `feature_path_at_closeout` resolved, all `gate_results` present
@@ -138,9 +138,8 @@ Close the run by executing these in order (evidence paths recorded under `{PRODU
 - `python3 agents/product-manager/scripts/validate-trackers.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID}` (scoped tracker validation; calls feature-evidence at --stage G6 per §22)
 - After §17 step 4 (`patch-prior-manifest.py` then `latest-run.json`): `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --stage closeout`
 - `python3 agents/product-manager/scripts/generate-story-index.py {PRODUCT_ROOT}/planning-mds/features/` (if stories changed)
-- `IF code in bound files changed: python3 {PRODUCT_ROOT}/scripts/kg/validate.py --regenerate-symbols`
-- `IF KG changed: python3 {PRODUCT_ROOT}/scripts/kg/validate.py --write-coverage-report`
-- `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --check-symbols`
+- `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --regenerate-symbols --check-symbols --regenerate-decisions --check-decisions`
+- `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --write-coverage-report` (mandatory after the G8 archive move)
 - `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --check-drift`
 - `python3 agents/scripts/validate_templates.py`
 - `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --stage closeout --json` and capture the output to `{RUN_FOLDER}/artifacts/feature-evidence-validation.json` for post-hoc analysis

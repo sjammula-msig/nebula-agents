@@ -42,6 +42,11 @@ REQUIRED_SECURITY_SCAN_CLASSES = ("dependency", "secrets", "sast", "dast")
 # `gate_results.kg_reconciliation`. Earlier runs are exempt so pre-existing
 # evidence packages (e.g. F0036, effective 2026-05-25) stay valid.
 KG_RECONCILIATION_EFFECTIVE_DATE = date(2026, 6, 1)
+# Runs whose contract_effective_date is on/after this date must prove the
+# generated knowledge-graph layers were rebuilt, not merely checked from a
+# previously committed snapshot. Earlier evidence packages stay valid under
+# their original weaker contract.
+KG_GENERATED_REGEN_EFFECTIVE_DATE = date(2026, 7, 5)
 RUN_ID_RE = re.compile(r"^\d{4}-\d{2}-\d{2}-[a-z0-9]{8}$")
 FEATURE_ID_RE = re.compile(r"^F\d{4}$")
 ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -120,6 +125,16 @@ def kg_reconciliation_required(manifest: dict[str, Any], stage: str) -> bool:
         stage in {"G7", "G8", "closeout"}
         and manifest_effective is not None
         and manifest_effective >= KG_RECONCILIATION_EFFECTIVE_DATE
+    )
+
+
+def kg_generated_regeneration_required(manifest: dict[str, Any], stage: str) -> bool:
+    """Whether this run must prove fresh generated-KG regeneration."""
+    manifest_effective = parse_iso_date(str(manifest.get("contract_effective_date", "")))
+    return (
+        kg_reconciliation_required(manifest, stage)
+        and manifest_effective is not None
+        and manifest_effective >= KG_GENERATED_REGEN_EFFECTIVE_DATE
     )
 
 
@@ -509,6 +524,77 @@ def safe_read(path: Path) -> str | None:
         return path.read_text(encoding="utf-8")
     except OSError:
         return None
+
+
+def _command_regenerates_symbols(command: str) -> bool:
+    command_lower = command.casefold()
+    return (
+        ("validate.py" in command_lower and "--regenerate-symbols" in command_lower)
+        or "symbols.py" in command_lower
+    )
+
+
+def _command_checks_symbols(command: str) -> bool:
+    command_lower = command.casefold()
+    return "validate.py" in command_lower and "--check-symbols" in command_lower
+
+
+def _command_regenerates_decisions(command: str) -> bool:
+    command_lower = command.casefold()
+    return (
+        ("validate.py" in command_lower and "--regenerate-decisions" in command_lower)
+        or "decisions.py" in command_lower
+    )
+
+
+def _command_checks_decisions(command: str) -> bool:
+    command_lower = command.casefold()
+    return "validate.py" in command_lower and "--check-decisions" in command_lower
+
+
+def _command_writes_coverage_report(command: str) -> bool:
+    command_lower = command.casefold()
+    return "validate.py" in command_lower and "--write-coverage-report" in command_lower
+
+
+def successful_kg_generated_command_flags(commands_log: Path) -> dict[str, bool]:
+    """Return which generated-KG commands have successful commands.log evidence."""
+    content = safe_read(commands_log)
+    flag_names = (
+        "symbol regeneration",
+        "symbol validation",
+        "decision regeneration",
+        "decision validation",
+        "coverage report regeneration",
+    )
+    if content is None:
+        return {flag: False for flag in flag_names}
+
+    results = {flag: False for flag in flag_names}
+    for raw_line in content.splitlines():
+        if not raw_line.strip():
+            continue
+        try:
+            record = json.loads(raw_line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(record, dict) or record.get("exit_code") != 0:
+            continue
+        command = record.get("command")
+        if not isinstance(command, str):
+            continue
+        results["symbol regeneration"] = (
+            results["symbol regeneration"] or _command_regenerates_symbols(command)
+        )
+        results["symbol validation"] = results["symbol validation"] or _command_checks_symbols(command)
+        results["decision regeneration"] = (
+            results["decision regeneration"] or _command_regenerates_decisions(command)
+        )
+        results["decision validation"] = results["decision validation"] or _command_checks_decisions(command)
+        results["coverage report regeneration"] = (
+            results["coverage report regeneration"] or _command_writes_coverage_report(command)
+        )
+    return results
 
 
 def load_json_file(path: Path) -> tuple[Any | None, str | None]:
@@ -3254,6 +3340,31 @@ def validate_phase2b_additional_rules(
             result.add_error(
                 "stage_g8_requires_tracker_results_fails",
                 "G8/closeout requires tracker-sync results to appear in lifecycle-gates.log before final validation",
+                **common,
+            )
+
+    # Generated KG layers must be rebuilt, not only checked from a previously
+    # committed snapshot. G7 owns the code-path-derived layers; G8/closeout adds
+    # the path-sensitive coverage layer after the feature archive move.
+    if kg_generated_regeneration_required(manifest, stage):
+        flags = successful_kg_generated_command_flags(run_folder / "commands.log")
+        required = [
+            "symbol regeneration",
+            "symbol validation",
+            "decision regeneration",
+            "decision validation",
+        ]
+        if stage in {"G8", "closeout"}:
+            required.append("coverage report regeneration")
+        missing = [flag for flag in required if not flags.get(flag, False)]
+        if missing:
+            result.add_error(
+                "kg_generated_regeneration_missing_fails",
+                "KG reconciliation must record successful generated-layer rebuild evidence in commands.log: "
+                "`validate.py --regenerate-symbols --check-symbols "
+                "--regenerate-decisions --check-decisions` at G7, plus "
+                "`validate.py --write-coverage-report` after the G8 archive move; "
+                f"missing {', '.join(missing)}",
                 **common,
             )
 

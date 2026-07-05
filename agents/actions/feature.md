@@ -172,7 +172,7 @@ Run `validate-feature-evidence.py` after producing each gate's artifacts so miss
 | G4 | `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID} --stage G4` | `G4` approval decision and mitigation token validation |
 | G5 | `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID} --stage G5` | `G5` |
 | G6 | `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID} --stage G6` | `G6` candidate validation; runs **before** tracker sync |
-| G7 | `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --check-symbols && python3 {PRODUCT_ROOT}/scripts/kg/validate.py --check-drift` | Architect KG reconciliation — semantic-graph (`code-index.yaml` / `canonical-nodes.yaml`) bound against the as-built source; symbol + drift checks exit 0. Binds **code** paths only (stable across the closeout archive move) |
+| G7 | `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --regenerate-symbols --check-symbols --regenerate-decisions --check-decisions && python3 {PRODUCT_ROOT}/scripts/kg/validate.py --check-drift` | Architect KG reconciliation — semantic-graph (`code-index.yaml` / `canonical-nodes.yaml`) bound against the as-built source; symbol/unbound and decisions regeneration + drift checks exit 0. Binds **code** paths only (stable across the closeout archive move) |
 | G8 | `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --stage closeout` | After supersession-and-publish completes — `latest-run.json`, `kg-reconciliation.md`, and `pm-closeout.md` must exist; tracker results must be in `lifecycle-gates.log` |
 
 Stage-validation failures must be repaired before advancing the gate. Do not skip stage validation even when the missing artifact "will land later" — the Feature Evidence Contract stage matrix declares exactly which artifacts must exist by stage.
@@ -199,8 +199,8 @@ Run in this order. Steps are grouped by gate; the `G7` architect group binds **c
 1. Applicable backend / frontend / AI / QE runtime commands for changed surfaces, with evidence paths recorded under `{PRODUCT_ROOT}/planning-mds/operations/evidence/**`
 2. **[G6]** `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID} --stage G6` (candidate validation before tracker sync)
 3. **[G6]** `python3 agents/product-manager/scripts/validate-trackers.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --run-id {RUN_ID}` (scoped tracker validation; calls feature-evidence at `--stage G6`; appends tracker results to `lifecycle-gates.log`)
-4. **[G7]** `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --regenerate-symbols` when code in bound files changed (architect; after confirming/adding `code-index.yaml` bindings + `canonical-nodes.yaml` entries for the as-built source)
-5. **[G7]** `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --check-symbols`
+4. **[G7]** `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --regenerate-symbols --check-symbols --regenerate-decisions --check-decisions` (architect; after confirming/adding `code-index.yaml` bindings + `canonical-nodes.yaml` entries for the as-built source)
+5. **[G7]** Record the successful symbol/unbound + decisions regeneration/check command in `commands.log`, `lifecycle-gates.log`, and `kg-reconciliation.md`
 6. **[G7]** `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --check-drift` (the architect's semantic graph must be green before closeout)
 7. **[G8]** After supersession-and-publish completes (`patch-prior-manifest.py` then `latest-run.json`) and the feature folder has been moved to `archive/`: `python3 agents/product-manager/scripts/validate-feature-evidence.py --product-root {PRODUCT_ROOT} --feature {FEATURE_ID} --stage closeout`
 8. **[G8]** `python3 agents/product-manager/scripts/generate-story-index.py {PRODUCT_ROOT}/planning-mds/features/` when story files moved/changed
@@ -808,15 +808,15 @@ Before setting feature status to `Done` or moving to archive, verify role signof
 2. Diff the as-built source against the graph's G0 declaration (the `feature-assembly-plan.md` "Knowledge-Graph Binding Plan", if present) to find the binding delta — capabilities, modules, or shared semantics that emerged during implementation.
 3. For every new source surface that represents a capability or shared semantic, add or update its binding in `{PRODUCT_ROOT}/planning-mds/knowledge-graph/code-index.yaml`. Bind by **directory glob** where a cohesive folder represents one capability (e.g. `experience/src/features/forms/**`), not file-by-file. Existing globs that already cover new files need no change — confirm coverage rather than duplicating.
 4. If the feature introduced new canonical nodes or rationale (`WHY`) entries, add them to `{PRODUCT_ROOT}/planning-mds/knowledge-graph/canonical-nodes.yaml`. If it introduced none, state that explicitly.
-5. Regenerate and validate the symbol layer for changed bound files: `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --regenerate-symbols --check-symbols`. (Editing a bound method body without first consulting `lookup.py --symbol` / `hint.py --symbol` is forbidden — the symbol layer keeps edits narrow.)
+5. Regenerate and validate all code-path-derived generated layers: `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --regenerate-symbols --check-symbols --regenerate-decisions --check-decisions`. This refreshes `symbol-index.yaml`, `unbound-but-referenced.yaml`, and `decisions-index.yaml`; it is mandatory even when the authored KG files appear unchanged. (Editing a bound method body without first consulting `lookup.py --symbol` / `hint.py --symbol` is forbidden — the symbol layer keeps edits narrow.)
 6. Run `python3 {PRODUCT_ROOT}/scripts/kg/validate.py --check-drift` and resolve any errors. Do **not** run `--write-coverage-report` here — coverage binds feature-doc paths that the PM closeout archive move will relocate; regenerating it now re-stales it on the move. Coverage regeneration is a `G8` step, after the move.
-7. Record the outcome in `kg-reconciliation.md` (template: `agents/templates/kg-reconciliation-template.md`): the binding delta applied, new/affirmed canonical nodes, and the green symbol + drift validator results.
+7. Record the outcome in `kg-reconciliation.md` (template: `agents/templates/kg-reconciliation-template.md`): the binding delta applied, new/affirmed canonical nodes, and the green generated-layer + drift validator results.
 
 **Completion Criteria:**
 - [ ] Architect agent activated for the reconciliation
 - [ ] `code-index.yaml` bindings exist for every new capability/shared-semantic source surface (glob-based; existing coverage confirmed, not duplicated)
 - [ ] New canonical nodes/rationale recorded in `canonical-nodes.yaml`, or "none introduced" stated explicitly
-- [ ] `validate.py --regenerate-symbols --check-symbols` exits 0
+- [ ] `validate.py --regenerate-symbols --check-symbols --regenerate-decisions --check-decisions` exits 0
 - [ ] `validate.py --check-drift` exits 0
 - [ ] `coverage-report.yaml` was **not** regenerated at this gate (deferred to `G8`, post-archive-move)
 - [ ] `kg-reconciliation.md` written

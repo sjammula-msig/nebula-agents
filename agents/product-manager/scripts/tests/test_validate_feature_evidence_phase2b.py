@@ -16,6 +16,58 @@ from test_validate_feature_evidence import (
 )
 
 
+def write_future_kg_closeout_run(product: Path, commands: list[dict[str, object]]) -> Path:
+    write_registry(product, archived="| F0001 | New Feature | 2026-07-05 |  | `archive/F0001-new/` |")
+    gate_results = {
+        "assembly_plan_validation": {"required": True, "result": "PASS", "artifact": "g0-assembly-plan-validation.md"},
+        "self_review": {"required": True, "result": "PASS", "artifact": "g2-self-review.md"},
+        "deployability": {"required": True, "result": "PASS", "artifact": "deployability-check.md"},
+        "signoff": {"required": True, "result": "PASS", "artifact": "signoff-ledger.md"},
+        "kg_reconciliation": {"required": True, "result": "PASS", "artifact": "kg-reconciliation.md"},
+        "pm_closeout": {"required": True, "result": "APPROVED", "artifact": "pm-closeout.md"},
+        "tracker_sync": {"required": True, "result": "PASS", "artifact": "lifecycle-gates.log"},
+    }
+    run_folder = write_manifest_run(
+        product,
+        "F0001-new",
+        "F0001",
+        status="approved",
+        latest=True,
+        stage="closeout",
+        manifest_updates={
+            "contract_effective_date": "2026-07-05",
+            "status": "approved",
+            "feature_state": "Archived",
+            "feature_path_at_closeout": "planning-mds/features/archive/F0001-new",
+            "gate_results": gate_results,
+        },
+    )
+    gate_rows = "\n".join(
+        f"| {gate} | PASS | role | 2026-07-05 | ok | No | - |"
+        for gate in ("G0", "G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8")
+    )
+    (run_folder / "gate-decisions.md").write_text(
+        "# Gate Decisions\n\n"
+        "| Gate | Decision | Decider | Timestamp | Rationale | Blocking | Follow-up |\n"
+        "|---|---|---|---|---|---|---|\n"
+        f"{gate_rows}\n",
+        encoding="utf-8",
+    )
+    (run_folder / "kg-reconciliation.md").write_text(
+        "# KG Reconciliation\n\n"
+        "## Binding Delta\n\nAs-built source bindings reconciled.\n\n"
+        "## Canonical Nodes\n\nNo new canonical nodes.\n\n"
+        "## Validator Results\n\nSymbol and drift validators recorded in commands.log.\n\n"
+        "## Handoff to Closeout\n\nReady for PM closeout.\n",
+        encoding="utf-8",
+    )
+    (run_folder / "commands.log").write_text(
+        "\n".join(json.dumps(record) for record in commands) + "\n",
+        encoding="utf-8",
+    )
+    return run_folder
+
+
 # --------------------------------------------------------------------------- #
 # SCM diff parsing + changed_paths_missing_diff_entry + boolean contradictions
 # --------------------------------------------------------------------------- #
@@ -226,6 +278,49 @@ def test_command_artifact_missing_fires(tmp_path: Path) -> None:
     result = run_validator(product, "--feature", "F0001", "--run-id", RUN_ID, "--stage", "G0", "--json")
     rules = {entry["rule_id"] for entry in json_result(result)["errors"]}
     assert "command_artifact_missing_fails" in rules
+
+
+def test_kg_generated_regeneration_missing_fires(tmp_path: Path) -> None:
+    product = tmp_path / "product"
+    write_future_kg_closeout_run(
+        product,
+        [{
+            "schema_version": 1,
+            "timestamp": "2026-07-05T12:00:00Z",
+            "cwd": "{PRODUCT_ROOT}",
+            "command": "python3 scripts/kg/validate.py --regenerate-symbols --check-symbols",
+            "exit_code": 0,
+            "artifacts": [],
+            "redactions": [],
+        }],
+    )
+
+    result = run_validator(product, "--feature", "F0001", "--stage", "closeout", "--json")
+    rules = {entry["rule_id"] for entry in json_result(result)["errors"]}
+    assert "kg_generated_regeneration_missing_fails" in rules
+
+
+def test_kg_generated_regeneration_command_passes(tmp_path: Path) -> None:
+    product = tmp_path / "product"
+    write_future_kg_closeout_run(
+        product,
+        [{
+            "schema_version": 1,
+            "timestamp": "2026-07-05T12:00:00Z",
+            "cwd": "{PRODUCT_ROOT}",
+            "command": (
+                "python3 scripts/kg/validate.py --regenerate-symbols --check-symbols "
+                "--regenerate-decisions --check-decisions --write-coverage-report"
+            ),
+            "exit_code": 0,
+            "artifacts": [],
+            "redactions": [],
+        }],
+    )
+
+    result = run_validator(product, "--feature", "F0001", "--stage", "closeout", "--json")
+    rules = {entry["rule_id"] for entry in json_result(result)["errors"]}
+    assert "kg_generated_regeneration_missing_fails" not in rules
 
 
 def command_artifact_result(tmp_path: Path, artifact: str, *, existing_rel: str | None = None):

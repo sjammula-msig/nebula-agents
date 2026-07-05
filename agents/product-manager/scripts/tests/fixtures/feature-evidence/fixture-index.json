@@ -168,6 +168,8 @@
   "screenshot_reference_missing_fails",
   "security_scan_reference_missing_fails",
   "stage_g8_requires_tracker_results_fails",
+  "kg_generated_regeneration_missing_fails",
+  "kg_generated_regeneration_command_passes",
   "test_results_reference_missing_fails",
   "reopened_historical_missing_evidence_fails",
   "active_done_pre_contract_malformed_date_requires_evidence_fails"
