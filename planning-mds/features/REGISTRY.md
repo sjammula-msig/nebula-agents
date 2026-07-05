@@ -1,6 +1,6 @@
 # Feature Registry
 
-**Next Available Feature Number:** F0006
+**Next Available Feature Number:** F0007
 
 **Planning Views:**
 - Roadmap sequencing (`Now / Next / Later`): `{PRODUCT_ROOT}/planning-mds/features/ROADMAP.md`
@@ -12,6 +12,7 @@
 | Feature ID | Name | Status | Phase | Folder |
 |------------|------|--------|-------|--------|
 | F0001 | Tmux-Native Agent Cockpit | Planned | MVP | `F0001-tmux-native-agent-cockpit/` |
+| F0006 | Compiled Knowledge-Graph Projection and Governed Integration | Planned | Platform Hardening | `F0006-compiled-kg-projection-and-integration/` |
 
 ## Retired Features
 
@@ -19,6 +20,7 @@ Replaces the legacy `Abandoned Features` section. Retired features are registry 
 
 | Feature ID | Name | Terminal Status | Superseded By | Retired Date | Folder | Reason |
 |------------|------|-----------------|---------------|--------------|--------|--------|
+| F0005 | Move-Invariant Knowledge-Graph Feature-Doc References | Superseded | F0006 | 2026-07-04 | `archive/F0005-move-invariant-kg-doc-references/` | Fully absorbed by F0006's compiled-projection design: logical doc refs become the compiler's reference format (F0006-S0005), migration lands via the decompiler (F0006-S0006), enforcement via reproducibility CI (F0006-S0008), contract reconciliation via F0006-S0009. |
 
 ## Planned (Reserved IDs)
 
@@ -27,7 +29,6 @@ Replaces the legacy `Abandoned Features` section. Retired features are registry 
 | F0002 | Managed Agent Orchestration | Planned | Future Platform | `F0002-managed-agent-orchestration/` |
 | F0003 | Local Agent Runtime Control Plane | Planned | Platform Hardening | `F0003-local-agent-runtime-control-plane/` |
 | F0004 | Reflective Learning Loop and Strategy Playbook | Planned | Context Engineering | `F0004-reflective-learning-loop/` |
-| F0005 | Move-Invariant Knowledge-Graph Feature-Doc References | Planned | Platform Hardening | `F0005-move-invariant-kg-doc-references/` |
 
 ## Archived Features
 

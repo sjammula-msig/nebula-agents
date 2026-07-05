@@ -1,7 +1,7 @@
 # F0005 - Move-Invariant Knowledge-Graph Feature-Doc References - Status
 
-**Overall Status:** Draft
-**Last Updated:** 2026-07-02
+**Overall Status:** Superseded by F0006 (2026-07-04) — no stories will be executed under this feature
+**Last Updated:** 2026-07-04
 
 ## Story Checklist
 

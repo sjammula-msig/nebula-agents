@@ -1,6 +1,6 @@
 # Feature Roadmap (Now / Next / Later)
 
-**Last Reviewed:** 2026-06-24
+**Last Reviewed:** 2026-07-04
 
 ## Purpose
 
@@ -16,6 +16,7 @@ This roadmap sequences Nebula Agents work so the team can validate one delivery 
 
 | Feature | Status | Why Now | Validation Gate |
 |---------|--------|---------|-----------------|
+| [F0006 - Compiled KG Projection and Governed Integration](./F0006-compiled-kg-projection-and-integration/) | Planned | Five open contributor PRs in the reference product repo are blocked on hand-merging knowledge-graph/tracker YAML — the framework has no sanctioned integration owner and every future multi-contributor merge hits the same wall. Phase A (semantic merge tool + integrator role) must land before any of them can merge safely. | Phase A: all 5 `nebula-insurance-crm` PRs merged via integrator runs with green validators and integration evidence. Phase B: compile round-trip byte-identical, reproducibility CI blocking, contract docs reconciled. |
 | [F0001 - Tmux-Native Agent Cockpit](./F0001-tmux-native-agent-cockpit/) | Planned | Establish the first usable terminal cockpit without losing native agent interactivity or subscription auth. | Operator can launch, attach, monitor, validate, and recover a native Codex or Claude Code session from the TUI. |
 
 ## Next
@@ -24,7 +25,6 @@ This roadmap sequences Nebula Agents work so the team can validate one delivery 
 |---------|--------|----------|----------------|
 | [F0003 - Local Agent Runtime Control Plane](./F0003-local-agent-runtime-control-plane/) | Planned | Add concrete local commands, status tools, evidence retrieval, summaries, metrics, and reviewed learning before managed orchestration becomes default. | F0001 session registry and transcript model are accepted or available as implementation dependencies. |
 | [F0002 - Managed Agent Orchestration](./F0002-managed-agent-orchestration/) | Planned | Add provider adapters and richer orchestration once tmux behavior and runtime control-plane contracts are understood and testable. | F0001 is implemented, F0003 runtime contracts are validated, and evidence shows native interactivity can be preserved or matched. |
-| [F0005 - Move-Invariant KG Feature-Doc References](./F0005-move-invariant-kg-doc-references/) | Planned | Independent platform-hardening track: governed feature closeout currently needs an off-book PM repoint of the architect-owned knowledge graph after the archive move (surfaced by F0038). | None — independent of the F0001 → F0003 → F0002 runtime line; reference implementation lands in a product repo's `scripts/kg/`. |
 
 ## Later
 
@@ -43,3 +43,5 @@ This roadmap sequences Nebula Agents work so the team can validate one delivery 
 - F0003 is the local runtime hardening layer that turns launch, status, evidence, summaries, metrics, and learning review into concrete implementation contracts.
 - F0002 may support SDK and exec-based providers, but it must keep a tmux fallback until managed orchestration proves equivalent engineering quality.
 - F0004 is a context-engineering layer, not a runtime path. It depends on F0003 evidence/telemetry being available to reflect from, and it never mutates `SKILL.md` or applies an unapproved change.
+- F0005 was superseded by F0006 on 2026-07-04 (see `REGISTRY.md` Retired Features): its logical doc-ref design is fully absorbed as the compiled-projection compiler's reference format.
+- F0006 is independent of the F0001 → F0003 → F0002 runtime line and does not displace F0001; it is in `Now` because it unblocks the reference product repo's open contributor PRs. Its Phase B (shard migration) must not start until Phase A's merge train completes.

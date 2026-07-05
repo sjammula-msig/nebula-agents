@@ -1,8 +1,16 @@
 # F0005 - Move-Invariant Knowledge-Graph Feature-Doc References
 
-**Status:** Planned
+**Status:** Superseded by [F0006](../../F0006-compiled-kg-projection-and-integration/README.md) (2026-07-04)
 **Priority:** High
 **Phase:** Platform Hardening
+
+> **Superseded — no work happens under this feature.** The compiled-projection design (F0006)
+> fully absorbs F0005: logical doc refs are the compiler's reference format. Story mapping:
+> S0001 resolver → F0006-S0005, S0002 migration → F0006-S0006, S0003 enforcement → F0006-S0008,
+> S0004 contract reconciliation → F0006-S0009. Per process, supersession makes a feature
+> archive-ready: the folder was moved here (`features/archive/`) at supersession as the design
+> record; its registry record lives in `REGISTRY.md` Retired Features (terminal status
+> `Superseded`), not Archived Features, because no scope was delivered under this ID.
 
 ## Overview
 

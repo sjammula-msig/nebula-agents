@@ -1,6 +1,6 @@
 # Nebula Agents Planning Blueprint
 
-**Last Updated:** 2026-07-03
+**Last Updated:** 2026-07-04
 
 ## Purpose
 
@@ -35,11 +35,18 @@ Nebula Agents should become an operator cockpit for high-quality agentic deliver
   - [F0004-S0005 - Strategy selection and context load-back](features/F0004-reflective-learning-loop/F0004-S0005-strategy-selection-and-load-back.md) - Not Started
   - [F0004-S0006 - Boundary, genericness, and lifecycle-gate enforcement](features/F0004-reflective-learning-loop/F0004-S0006-boundary-and-genericness-gate.md) - Not Started
 
-- [F0005 - Move-Invariant Knowledge-Graph Feature-Doc References](features/F0005-move-invariant-kg-doc-references/README.md) - Planned / Next (Platform Hardening)
-  - [F0005-S0001 - Feature-doc reference resolver (dual-format, fail-loud)](features/F0005-move-invariant-kg-doc-references/F0005-S0001-feature-doc-reference-resolver.md) - Not Started
-  - [F0005-S0002 - Migrate existing feature-doc references to logical form](features/F0005-move-invariant-kg-doc-references/F0005-S0002-migrate-feature-doc-refs-to-logical.md) - Not Started
-  - [F0005-S0003 - Enforce logical-only feature-doc references](features/F0005-move-invariant-kg-doc-references/F0005-S0003-enforce-logical-only-feature-doc-refs.md) - Not Started
-  - [F0005-S0004 - Reconcile framework contract, prompt, and KG docs](features/F0005-move-invariant-kg-doc-references/F0005-S0004-reconcile-framework-contract-and-docs.md) - Not Started
+- [F0005 - Move-Invariant Knowledge-Graph Feature-Doc References](features/archive/F0005-move-invariant-kg-doc-references/README.md) - Superseded by F0006 (2026-07-04; folder archived at supersession; see `features/REGISTRY.md` Retired Features)
+
+- [F0006 - Compiled Knowledge-Graph Projection and Governed Integration](features/F0006-compiled-kg-projection-and-integration/README.md) - Planned / Now (Platform Hardening)
+  - [F0006-S0001 - Three-way semantic KG merge tool (`merge3.py`)](features/F0006-compiled-kg-projection-and-integration/F0006-S0001-three-way-semantic-kg-merge.md) - Not Started
+  - [F0006-S0002 - Tracker-table three-way merge (REGISTRY/ROADMAP rows)](features/F0006-compiled-kg-projection-and-integration/F0006-S0002-tracker-table-three-way-merge.md) - Not Started
+  - [F0006-S0003 - Integrator role and `integrate` action](features/F0006-compiled-kg-projection-and-integration/F0006-S0003-integrator-role-and-integrate-action.md) - Not Started
+  - [F0006-S0004 - `kg-source/` shard schema, layout, and ownership](features/F0006-compiled-kg-projection-and-integration/F0006-S0004-kg-source-shard-schema-and-ownership.md) - Not Started
+  - [F0006-S0005 - Deterministic KG compiler with logical doc refs](features/F0006-compiled-kg-projection-and-integration/F0006-S0005-deterministic-kg-compiler.md) - Not Started
+  - [F0006-S0006 - Decompiler-first migration with round-trip proof](features/F0006-compiled-kg-projection-and-integration/F0006-S0006-decompiler-first-migration.md) - Not Started
+  - [F0006-S0007 - Tracker generation from feature shards](features/F0006-compiled-kg-projection-and-integration/F0006-S0007-tracker-generation-from-shards.md) - Not Started
+  - [F0006-S0008 - Reproducibility CI, enforcement, and git policy](features/F0006-compiled-kg-projection-and-integration/F0006-S0008-reproducibility-ci-and-git-policy.md) - Not Started
+  - [F0006-S0009 - Framework contract, roles, and docs reconciliation](features/F0006-compiled-kg-projection-and-integration/F0006-S0009-framework-contract-reconciliation.md) - Not Started
 
 ## Validation Policy
 

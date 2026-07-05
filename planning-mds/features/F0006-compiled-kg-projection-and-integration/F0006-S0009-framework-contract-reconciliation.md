@@ -1,0 +1,119 @@
+# F0006-S0009 - Framework Contract, Roles, and Docs Reconciliation
+
+## Story Header
+
+**Story ID:** F0006-S0009
+**Feature:** F0006 - Compiled Knowledge-Graph Projection and Governed Integration
+**Title:** Framework contract, roles, and docs reconciliation
+**Priority:** High
+**Phase:** Platform Hardening (Feature Phase B)
+
+## User Story
+
+**As an** operator or role agent following the framework's written contract
+**I want** every action, prompt, ownership boundary, template, and doc updated to describe the shipped compiled-projection and integrator behavior — with no remaining description of hand-maintained graph files or off-book repoints
+**So that** a strict agent obeying the letter of the contract performs correctly at every gate, and the contract stops being aspirational in exactly the places F0038 and PR #47 proved it wrong.
+
+## Context & Background
+
+This absorbs F0005-S0004 and extends it to the full F0006 surface. The framework currently makes
+claims that are false post-F0006 (or were false already): `feature.md` and the operator prompt say
+the architect's G7 binding is "code paths only, stable across the archive move" (it wasn't); the
+ownership rules make no one the writer of generated files on the mainline; no action describes
+integration. Docs ship **last** (after S0003 for integrator surfaces, after S0004–S0008 for the
+projection surfaces) so the contract never describes unshipped behavior — but the story is
+specified now so every edit target is inventoried up front (PRD "Framework Edit Inventory").
+
+## Acceptance Criteria
+
+**Happy Path (contract audit):**
+- **Given** the shipped Phase A + B behavior
+- **When** each inventoried surface is reconciled and the audit rereads the full set
+- **Then** no framework file instructs or implies: hand-editing a generated file, PM edits to
+  architect-owned graph files, physical feature-doc refs in shards, trusting a clean merge of
+  generated files, or any merge path that bypasses the integrator on graph/tracker files.
+
+**Alternative Flows / Edge Cases:**
+- `agents/agent-map.yaml`: integrator registered (S0003); architect writes
+  `kg-source/{nodes,bindings,policies,ontology}/**`; PM writes `kg-source/features/**` and tracker
+  prose; PM's direct `feature-mappings.yaml` write is **removed** (file becomes generated);
+  exclusions co-sign encoded.
+- `agents/actions/feature.md`: G7 = author/update shards + compile + validate; G8 archive = feature
+  shard `path:`/`status:` edit + recompile; exit validation includes `--check-reproducible`.
+- Prompts: `feature-operator-friendly.md` reconciled; `integrate-operator-friendly.md` exists
+  (S0003) and is referenced by the runbook.
+- Docs: `KNOWLEDGE-GRAPH.md` (classification, shard schema, compile flow, logical refs, merge
+  taxonomy, `depends_on` single-home), `ORCHESTRATION-CONTRACT.md` (integrator role + sole-writer
+  rule + routing), `MANUAL-ORCHESTRATION-RUNBOOK.md` (maintainer integration procedure).
+- Templates: `kg-reconciliation`, `feature-assembly-plan`, `tracker-governance`,
+  `feature-registry` (generated-region markers), `ci-gates` (S0008 job) — examples use shards and
+  logical refs.
+- `agents/actions/README.md` + `ROUTER.md` route `integrate`.
+- This repo's own `TRACKER-GOVERNANCE.md` notes which product-repo trackers became generated and
+  that `nebula-agents` itself has not adopted the shard model (until it does).
+- Each edited surface cites the story/PRD section that made the old text wrong (review
+  traceability).
+
+## Interaction Contract
+
+N/A — documentation and configuration; no interactive surface.
+
+| Surface / Entry Point | User Action | Editable State | Save / Mutation Result | Reload / Persistence Evidence | Roles / Status Constraints |
+|-----------------------|-------------|----------------|-------------------------|-------------------------------|----------------------------|
+| Framework docs/templates/map | Role agents read at action time | The inventoried files | Contract text matches shipped behavior | Contract audit checklist in evidence | Architect-owned reconciliation, code-reviewer signoff |
+
+## Data Requirements
+
+**Inputs:** PRD Framework Edit Inventory (authoritative checklist); shipped behavior from
+S0001–S0008.
+**Outputs:** edited files + a completed audit checklist stored with feature evidence.
+
+**Validation Rules:**
+- Zero remaining references to: PM repoint of canonical-nodes/code-index, hand-merge of KG YAML,
+  hand-maintained REGISTRY/ROADMAP feature tables (post-S0007), physical feature-doc refs in
+  authoring guidance.
+- `agent-map.yaml` write scopes match S0004's ownership map exactly.
+
+## Dependencies
+
+**Depends On:** F0006-S0003 (integrator surfaces), F0006-S0004–S0008 (projection surfaces).
+**Related Stories:** All — this is the closing story.
+
+## Business Rules
+
+1. The contract never describes unshipped behavior; docs land with or after their mechanism.
+2. Ownership language is testable: every "X owns Y" statement corresponds to an `agent-map.yaml`
+   scope or a validator rule.
+
+## Out of Scope
+
+- New behavior (all mechanisms land in S0001–S0008). Historical evidence runs (append-only).
+  Retroactive edits to F0038/PR #47 records.
+
+## Non-Functional Expectations
+
+- Audit checklist is re-runnable (grep-able assertions where possible).
+
+## Questions & Assumptions
+
+**Open Questions:**
+- [ ] Whether `nebula-agents` should adopt the shard model for its own planning graph in this
+      story or a follow-up feature (proposal: follow-up; this repo has no populated KG yet).
+
+**Assumptions (to be validated):**
+- The PRD inventory is complete; the audit includes a sweep for uninventoried mentions
+  (`grep -ri 'canonical-nodes\|feature-mappings\|code-index' agents/`).
+
+## Definition of Done
+
+- [ ] Every PRD-inventoried surface edited; audit checklist complete with zero violations
+- [ ] `agent-map.yaml` scopes verified against S0004 ownership map
+- [ ] Sweep for uninventoried stale references clean
+- [ ] F0005 gap formally closed in prose (KNOWLEDGE-GRAPH.md documents logical refs as the only
+      authoring form; the off-book-repoint narrative is gone)
+- [ ] Story filename matches `Story ID` prefix
+- [ ] Story index regenerated or updated
+
+## Review Provenance
+
+Story-level signoff provenance is recorded in the parent feature `STATUS.md`.

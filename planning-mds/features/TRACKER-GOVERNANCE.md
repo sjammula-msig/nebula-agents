@@ -16,6 +16,7 @@
 
 - A feature starts as `Planned` or `Draft`, moves to `In Progress` only when implementation starts, and moves to `Done` only after required story signoff provenance is recorded.
 - `Archived` is a post-closeout state. Archived features move under `planning-mds/features/archive/`.
+- Superseded features are archive-ready at supersession: the folder moves under `planning-mds/features/archive/` immediately (terminal state — nothing further accumulates), while the registry record stays in `Retired Features` (status `Superseded`, folder path `archive/F####-…/`), not `Archived Features`, because no scope was delivered under that ID. Stories left `Not Started` must carry a recorded rehoming decision (the story mapping to the superseding feature).
 - Story IDs are never reused inside a feature.
 - Feature IDs are never reused across active, planned, retired, or archived records.
 - F0001 is the first executable terminal UI path. F0002 is a future-state platform path and must preserve a fallback to F0001 behavior until parity is proven.
