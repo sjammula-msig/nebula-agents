@@ -34,10 +34,13 @@ specified now so every edit target is inventoried up front (PRD "Framework Edit 
   generated files, or any merge path that bypasses the integrator on graph/tracker files.
 
 **Alternative Flows / Edge Cases:**
-- `agents/agent-map.yaml`: integrator registered (S0003); architect writes
+- `agents/agent-map.yaml`: integrator registered (S0003); architect is primary writer of
   `kg-source/{nodes,bindings,policies,ontology}/**`; PM writes `kg-source/features/**` and tracker
-  prose; PM's direct `feature-mappings.yaml` write is **removed** (file becomes generated);
-  exclusions co-sign encoded.
+  prose; PM's direct `feature-mappings.yaml` write is **removed** (file becomes generated).
+  Co-sign encoded on the primary scopes per S0004's ownership map: `exclusions/` (PM + architect),
+  `ontology/` (architect + PM per its embedded matrix), `policies/` (architect + security where
+  applicable). Every "X owns Y" line traces to exactly one primary scope plus zero-or-more co-sign
+  requirements (S0004 Business Rule 2).
 - `agents/actions/feature.md`: G7 = author/update shards + compile + validate; G8 archive = feature
   shard `path:`/`status:` edit + recompile; exit validation includes `--check-reproducible`.
 - Prompts: `feature-operator-friendly.md` reconciled; `integrate-operator-friendly.md` exists

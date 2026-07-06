@@ -1,7 +1,7 @@
 # F0006 - Compiled Knowledge-Graph Projection and Governed Integration - Status
 
 **Overall Status:** In Progress
-**Last Updated:** 2026-07-05 (S0001 implementation + PR #47 replay on `feat/F0006-S0001-semantic-kg-merge` in `nebula-insurance-crm`)
+**Last Updated:** 2026-07-06 (Phase-A merge-train complete — all 7 contributor PRs integrated and promoted to `main`; S0001–S0003 signed off)
 
 ## Story Checklist
 
@@ -22,13 +22,12 @@
 - [x] `merge3.py` replays the PR #47 resolution: re-serialization hunks converge to zero conflicts (2026-07-05: canonical-nodes 9,656 changed lines → 0 conflicts, 528→548 records; code-index clean with both sides' additions)
 - [x] Known PR #47 real deltas surface as typed items — replay outcome per delta: `excluded_features` regression (PR re-adds stale F0038 exclusion) → `UniqueViolation` routed to product-manager+architect; F0038 archive repoint → converged one-sidedly to the archived path, no typed item needed; stale F0038 `status` (`architecture-complete` on an archived feature) → identical on both sides so correctly not a merge conflict — flagged as a PM data fix before the integrator run
 - [x] Integrator dry-run on PR #47 emits a complete integration evidence run (`integrate-20260705-195057`, mode=dry-run, simulated gate-1 waiver labeled; outcome halted-conflicts with the F0038-exclusion UniqueViolation routed to PM+architect; poisoned-clean-merge proof on code-index captured)
-- [~] Per-PR gate 1: maintainer decision 2026-07-05 — feature-review WAIVED for all train PRs, recorded per run (#47 ✓, #51 ✓; remaining runs record theirs at run time)
-- [~] Per-PR gate 2: maintainer human test validation recorded per prepared merge (#47 PASS 2026-07-05; #51 pending)
+- [x] Per-PR gate 1: maintainer decision 2026-07-05 — feature-review WAIVED for all train PRs, recorded per run (#47, #51, batch #50/#48/#49, batch #53/#54 — all ✓)
+- [x] Per-PR gate 2: maintainer human test validation recorded per prepared merge (#47 PASS 2026-07-05; #51 and batches #50/#48/#49 and #53/#54 all PASS 2026-07-06)
 - [x] PR #47 merged via integrator (runs integrate-20260705-195057 dry → 203038 live; F0038-exclusion fixup 500ab17; gate-2 pass; landed c6ccaa0 on local chore/merge-PRs)
 - [x] PR #51 merged via integrator (stacked on #47 — delta replay): attempt integrate-20260705-205309 halted with 22 DivergentInserts (stale pre-archive F0038/Neuron records) → fixup 6f7c7ff → re-run integrate-20260705-235757 clean; gate-2 PASS 2026-07-06 (incl. Neuron env fix note); landed 4ce85fe
 - [x] PRs #50 / #48 / #49 merged via integrator (batch on integrate/batch-50-48-49; runs integrate-20260706-012415 / -012853 / -013307; all semantic merges clean — 2 ROADMAP prose unions + code grafts recorded per run; batch gate-2 PASS 2026-07-06 incl. authentik blueprint fix; landed 5b3d154)
 - [x] PRs #53 / #54 merged via integrator (batch on integrate/batch-53-54; runs integrate-20260706-030136 / -045307; **first real cross-feature semantic collision caught**: F0021 and F0008 both allocated ADR-029 → DivergentInsert on adr:029 routed to architect → F0008's ADR renumbered to ADR-031 across file + 24 doc refs + 10 KG refs; all merges then clean; batch gate-2 PASS 2026-07-06; landed 3cff188)
-- [ ] PRs #53 / #54 merged via integrator (F0022 work queues, F0008 broker insights — joined the queue 2026-07-04, identical KG/tracker footprint)
 - [x] Integration branch (`chore/merge-PRs`) green after each merge (`validate.py`, orphan check, story-index zero-diff — recorded per run)
 - [x] Promotion merge `chore/merge-PRs` → `main` after the train completes — the only change that touches `main` (2026-07-06, `e2f78be`; all 7 contributor PRs auto-flipped to MERGED on GitHub; **Phase-A merge-train exit COMPLETE**)
 
@@ -82,6 +81,14 @@
 
 Complete this before moving `Overall Status` to `Done` or `Archived`.
 
+> **Required roles per story:** the roles listed for a story below are exactly those required for
+> that story — a role's absence means it is *not required* for that story, not that a signoff is
+> missing. QE's required scope is the merge tooling and replay/round-trip evidence (S0001, S0002,
+> S0005–S0008); the role/contract stories (S0003, S0009) require Architect + Code Reviewer.
+> This is why S0002 has no Architect row (it inherits S0001's merge semantics) and S0003 has no QE
+> row. Feature-level closeout still requires every role in "Required Signoff Roles" to hold at least
+> one story-level PASS.
+
 | Story | Role | Reviewer | Verdict | Evidence | Date | Notes |
 |-------|------|----------|---------|----------|------|-------|
 | F0006-S0001 | Quality Engineer | quality-engineer (delegated, maintainer-sanctioned session) | PASS | 27/27 merge3 tests green on promoted `main` (converge/one-side/field-recurse/ordered-list/delete-vs-update/orphan/unique/all-or-nothing/idempotent-canonicalization/edge-refs/rollback/determinism); PR #47 replay: 9,656-line noise → 0 conflicts + the 1 known real delta typed | 2026-07-06 | Cross-machine determinism deferred (single-machine verified) |
@@ -110,6 +117,7 @@ Complete this before moving `Overall Status` to `Done` or `Archived`.
 | Roll compiler + shard migration to other product repos | Each repo adopts independently after the reference implementation is proven | TBD | Framework maintainer |
 | Re-evaluate OmniGraph (or similar) if live multi-agent graph writes are ever needed | Out of scope; serial integrator suffices at current scale | TBD | Architect |
 | Central `F####` reservation tooling for contributors | Process rule suffices now (REGISTRY reservation before branching) | TBD | PM |
+| Exercise S0003's two untested human-gate paths (gate-1 missing-verdict halt; gate-2 validation-fail leaves the merge unpushed) in the first post-train integration | Train-wide feature-review waiver + all-pass validations meant neither path ran live; both remain contract-text-only (see S0003 provenance note) | TBD | Maintainer + Quality Engineer |
 
 ## Closeout Summary
 

@@ -60,9 +60,13 @@ N/A — specification + validation rules; no interactive surface.
 **Deliverables:**
 - Schema spec document (product repo `planning-mds/kg-source/README.md` + JSON Schemas per kind
   under `planning-mds/schemas/kg-source/`).
-- Ownership map: directory → role, encoded both in docs and in `agents/agent-map.yaml` write scopes
-  (architect: `nodes/`, `bindings/`, `policies/`, `ontology/`; PM: `features/`;
-  co-sign: `exclusions/`).
+- Ownership map: directory → primary owner (+ co-sign), encoded both in docs and in
+  `agents/agent-map.yaml` write scopes:
+    - Primary architect: `nodes/`, `bindings/`, `policies/`, `ontology/`
+    - Primary PM: `features/`
+    - Co-sign: `exclusions/` (PM + architect), `ontology/` (+ PM per its embedded matrix),
+      `policies/` (+ security where applicable)
+  Co-sign is encoded as a secondary approver on the primary owner's scope, not a second write scope.
 
 **Validation Rules:**
 - Every shard: parseable YAML, required `id`, kind/directory agreement, single owner.
@@ -77,7 +81,13 @@ shards in this shape), F0006-S0009 (agent-map/docs encode the ownership).
 ## Business Rules
 
 1. One concept (or one explicitly-allowed scoped bundle) per file.
-2. Every directory has exactly one owning role; `exclusions/` requires PM + architect co-sign.
+2. Every directory has exactly one **primary owner role** (the conflict-routing target). Three
+   directories additionally require **co-sign** on the relevant files/sections, which the
+   compiler/validator records but does not auto-resolve:
+   - `exclusions/` — PM + architect (symmetric: either-side change needs both).
+   - `ontology/` — architect primary; PM co-sign on the sections its embedded ownership matrix
+     assigns to PM.
+   - `policies/` — architect primary; security co-sign where applicable (e.g. `authorization-*.yaml`).
 3. Feature shards are the single home for feature `path`, `status`, and `depends_on`.
 4. No shard may reference another shard by file path — IDs only.
 
@@ -93,8 +103,9 @@ shards in this shape), F0006-S0009 (agent-map/docs encode the ownership).
 ## Questions & Assumptions
 
 **Open Questions:**
-- [ ] Whether `policies/` needs security-role co-sign for authorization rules (proposal: yes for
-      `authorization-*.yaml`).
+- [x] Whether `policies/` needs security-role co-sign for authorization rules — **decided: yes**,
+      security co-sign on `authorization-*.yaml` (per PRD §2 "security co-sign where applicable";
+      encoded in the co-sign column of Business Rule 2).
 
 **Assumptions (to be validated):**
 - The current graph's node kinds map cleanly onto the four `nodes/` subdirectories (verify against

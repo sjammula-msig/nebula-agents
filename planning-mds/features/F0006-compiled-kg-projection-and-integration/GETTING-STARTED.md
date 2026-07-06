@@ -42,6 +42,10 @@ python3 scripts/kg/merge3.py \
 
 ## Per-PR integration gates (Phase A merge train)
 
+> The Phase-A merge train is **complete** — all 7 contributor PRs were integrated and promoted to
+> `main` on 2026-07-06 (see `STATUS.md`). The sequence below is the steady-state per-PR procedure the
+> train established; it is what each future integration run follows.
+
 Every PR passes the same sequence; the two human gates are deliberate pauses, recorded in the
 integration evidence run:
 

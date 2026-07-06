@@ -33,7 +33,8 @@ touches; migrating with open contributor PRs invalidates them all.
 - **Given** the post-train, canonicalized reference graph (validators green)
 - **When** `decompile.py` runs, then `compile.py` runs on its output
 - **Then** the compiled projections are byte-identical to the pre-migration files, every shard
-  passes S0004 validation, and `validate.py` + `--check-drift` are green before and after.
+  passes S0004 validation, `validate.py` stays green across the migration, and the reproducibility
+  check (`validate.py --check-reproducible`) is green on the compiled result.
 
 **Logical-ref migration:**
 - **Given** a canonical node with physical refs into a live feature folder and an archived one

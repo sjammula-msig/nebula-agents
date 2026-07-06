@@ -6,7 +6,7 @@
 **Feature Name:** Compiled Knowledge-Graph Projection and Governed Integration
 **Priority:** Critical
 **Phase:** Platform Hardening
-**Status:** Draft
+**Status:** In Progress
 **Supersedes:** F0005 (Move-Invariant Knowledge-Graph Feature-Doc References — absorbed as the compiler's reference format)
 
 ## Feature Statement
@@ -105,19 +105,23 @@ ever corrupt or silently stale the graph.
 
 ## Acceptance Criteria Overview
 
-- [ ] `merge3.py` merges base/ours/theirs of the curated KG files by semantic ID; identical
+Phase-A criteria (the first five below, plus unconditional merge-time regeneration) are **met** —
+evidence in `STATUS.md` (merge-train exit and S0001–S0003 signoffs). Phase-B criteria remain open
+until S0004–S0009 land.
+
+- [x] `merge3.py` merges base/ours/theirs of the curated KG files by semantic ID; identical
       re-serialized content converges with **zero** conflicts; real divergence yields typed
       conflicts; output is canonically serialized or nothing (all-or-nothing).
-- [ ] REGISTRY/ROADMAP feature tables merge as keyed rows with deterministic ordering
+- [x] REGISTRY/ROADMAP feature tables merge as keyed rows with deterministic ordering
       (archived tables newest-first, feature-ID-descending tiebreak).
-- [ ] The integrator role exists in `nebula-agents` (persona + `agent-map.yaml` + `integrate`
+- [x] The integrator role exists in `nebula-agents` (persona + `agent-map.yaml` + `integrate`
       action) and is the sole sanctioned writer of generated graph/tracker files on the mainline;
       it never edits source-authored files; conflicts route to architect (nodes/bindings) or PM
       (features/trackers) per the taxonomy.
-- [ ] All open `nebula-insurance-crm` contributor PRs (7 at planning time: #47–#51, #53, #54) are
+- [x] All open `nebula-insurance-crm` contributor PRs (7 at planning time: #47–#51, #53, #54) are
       merged through integrator runs, each leaving an integration evidence run and a green
       `validate.py`.
-- [ ] Every integration run is bracketed by two human gates, both recorded in the evidence run:
+- [x] Every integration run is bracketed by two human gates, both recorded in the evidence run:
       a passing `feature-review` verdict (or maintainer waiver with rationale) verified before the
       run starts, and a maintainer test validation of the prepared merge worktree before push.
 - [ ] `kg-source/` schema is documented with per-directory ownership mapped to existing roles;
@@ -129,7 +133,7 @@ ever corrupt or silently stale the graph.
 - [ ] Committed projections equal `compile(source)` on every PR (CI reproducibility check,
       blocking after Phase B cutover); hand-edits to generated files fail CI with an actionable
       message.
-- [ ] Merge-time regeneration is **unconditional** — the integrator recompiles even when git
+- [x] Merge-time regeneration is **unconditional** — the integrator recompiles even when git
       reports a clean merge of generated files.
 - [ ] Feature-doc references in source shards are logical (`F####/rel-path`); archiving a feature
       is exactly one `path:` edit in its feature shard; no physical feature path survives in any

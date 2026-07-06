@@ -51,9 +51,12 @@ PR #47 postmortem: archived feature ⇒ no non-archive feature path anywhere in 
 - Tracker fenced-region integrity: markers missing/moved/hand-edited inside → reproducibility fail.
 - Rollout: workflow runs **warn-only** from B1 until the S0006 cutover lands, then flips blocking
   (branch protection). The flip is a one-line change committed with the cutover.
-- Phase A interim: before the compiler exists, the same workflow shape checks the *derived* files
-  only (regenerate symbols/decisions/coverage/story-index and diff) — giving contributor branches
-  early feedback during the merge-train period.
+- Phase A interim (retrospective for the reference repo): before the compiler exists, the same
+  workflow shape can check the *derived* files only (regenerate symbols/decisions/coverage/story-index
+  and diff). In `nebula-insurance-crm` the merge train completed (2026-07-06) before S0008 was built,
+  so this interim check never ran there — the integrator's per-run unconditional regeneration + bounce
+  rule (S0003) covered that window instead. The mode remains available for any repo that runs a
+  Phase-A merge train before standing up its compiler.
 - Enforcement rules in `validate.py`: physical feature-path ban in source fields; archived ⇒ no
   stale path in projections; alias-suppression ledger entries must carry rationale; every binding
   glob matches ≥ 1 file unless allowed.
