@@ -52,13 +52,13 @@ supersedes **F0005** (move-invariant logical doc refs become the compiler's refe
 | [F0006-S0003](./F0006-S0003-integrator-role-and-integrate-action.md) | Integrator role and `integrate` action | Done |
 | [F0006-S0004](./F0006-S0004-kg-source-shard-schema-and-ownership.md) | `kg-source/` shard schema, layout, and ownership | Done |
 | [F0006-S0005](./F0006-S0005-deterministic-kg-compiler.md) | Deterministic KG compiler with logical doc refs | Done |
-| [F0006-S0006](./F0006-S0006-decompiler-first-migration.md) | Decompiler-first migration with round-trip proof | Not Started |
-| [F0006-S0007](./F0006-S0007-tracker-generation-from-shards.md) | Tracker generation from feature shards | Not Started |
-| [F0006-S0008](./F0006-S0008-reproducibility-ci-and-git-policy.md) | Reproducibility CI, enforcement, and git policy | Not Started |
-| [F0006-S0009](./F0006-S0009-framework-contract-reconciliation.md) | Framework contract, roles, and docs reconciliation | Not Started |
+| [F0006-S0006](./F0006-S0006-decompiler-first-migration.md) | Decompiler-first migration with round-trip proof | Done |
+| [F0006-S0007](./F0006-S0007-tracker-generation-from-shards.md) | Tracker generation from feature shards | Done |
+| [F0006-S0008](./F0006-S0008-reproducibility-ci-and-git-policy.md) | Reproducibility CI, enforcement, and git policy | Done |
+| [F0006-S0009](./F0006-S0009-framework-contract-reconciliation.md) | Framework contract, roles, and docs reconciliation | Done |
 
 **Total Stories:** 9
-**Completed:** 5 / 9 (Phase A complete 2026-07-06; Phase B — S0004 shard schema/validator + S0005 deterministic compiler done 2026-07-09)
+**Completed:** 9 / 9 (**all stories implemented**; feature-level closeout pending). Phase A complete 2026-07-06; Phase B (B1–B6) complete 2026-07-11 — S0004 schema/validator + S0005 compiler + S0006 migration cutover + S0007 tracker generation + S0008 reproducibility CI + S0009 contract/docs reconciliation.
 
 ## Phasing
 
@@ -77,10 +77,10 @@ the integrator creates a dedicated integration branch per train; the promotion r
 
 ## Architecture Review
 
-**Phase B status:** In Progress (B1/S0004 + B2/S0005 done 2026-07-09; B3–B6 pending)
+**Phase B status:** **Complete** (B1/S0004 + B2/S0005 + B3/S0006 + B4/S0007 + B5/S0008 + B6/S0009 all done 2026-07-11). Feature-level closeout (feature-review + promotion) is a separate maintainer-triggered step.
 **Execution Plan:** [PRD.md](./PRD.md) §Sequencing & Migration Plan, rows B1–B6 (S0004→S0009 with
 per-step exit proofs). Per-story build trackers:
-[S0004](./F0006-S0004-implementation-plan.md) · [S0005](./F0006-S0005-implementation-plan.md).
+[S0004](./F0006-S0004-implementation-plan.md) · [S0005](./F0006-S0005-implementation-plan.md) · [S0006](./F0006-S0006-implementation-plan.md) · [S0007](./F0006-S0007-implementation-plan.md).
 
 ### Key Findings
 
