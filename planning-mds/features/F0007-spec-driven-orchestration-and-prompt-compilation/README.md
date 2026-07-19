@@ -1,6 +1,6 @@
 # F0007 - Spec-Driven Orchestration and Prompt Compilation
 
-**Status:** Planned
+**Status:** In Progress (Phase A)
 **Priority:** Critical
 **Phase:** Framework Hardening
 
@@ -44,18 +44,18 @@ independent historical fixtures + semantic invariants
 
 | ID | Title | Status |
 |----|-------|--------|
-| [F0007-S0001](./F0007-S0001-versioned-action-policy-and-schema.md) | Versioned action policy and schema | Not Started |
-| [F0007-S0002](./F0007-S0002-contract-conformance-and-behavioral-diff.md) | Contract conformance and behavioral diff | Not Started |
-| [F0007-S0003](./F0007-S0003-run-initialization-and-product-scaffolding.md) | Run initialization and product scaffolding | Not Started |
-| [F0007-S0004](./F0007-S0004-typed-command-runtime-and-telemetry.md) | Typed command runtime and complete telemetry | Not Started |
-| [F0007-S0005](./F0007-S0005-gate-driver-checkpoints-and-severity-policy.md) | Gate driver, durable checkpoints, and severity policy | Not Started |
-| [F0007-S0006](./F0007-S0006-generated-evidence-prompts-and-drift-gate.md) | Generated evidence prompts and drift gate | Not Started |
-| [F0007-S0007](./F0007-S0007-version-aware-validator-convergence.md) | Version-aware validator convergence | Not Started |
-| [F0007-S0008](./F0007-S0008-shared-policy-consumers-and-prose-thinning.md) | Shared policy consumers and prose thinning | Not Started |
-| [F0007-S0009](./F0007-S0009-governed-rollout-and-compatibility-pilot.md) | Governed rollout and compatibility pilot | Not Started |
+| [F0007-S0001](./F0007-S0001-versioned-action-policy-and-schema.md) | Versioned action policy and schema | Implemented (pending signoff) |
+| [F0007-S0002](./F0007-S0002-contract-conformance-and-behavioral-diff.md) | Contract conformance and behavioral diff | Implemented (pending signoff) |
+| [F0007-S0003](./F0007-S0003-run-initialization-and-product-scaffolding.md) | Run initialization and product scaffolding | Implemented (pending signoff) |
+| [F0007-S0004](./F0007-S0004-typed-command-runtime-and-telemetry.md) | Typed command runtime and complete telemetry | Implemented (pending signoff) |
+| [F0007-S0005](./F0007-S0005-gate-driver-checkpoints-and-severity-policy.md) | Gate driver, durable checkpoints, and severity policy | Implemented (pending signoff) |
+| [F0007-S0006](./F0007-S0006-generated-evidence-prompts-and-drift-gate.md) | Generated evidence prompts and drift gate | Machinery implemented; prompt cutover human-gated (deferred) |
+| [F0007-S0007](./F0007-S0007-version-aware-validator-convergence.md) | Version-aware validator convergence | Implemented (dual-read parity proven; constant removal deferred to S0008) |
+| [F0007-S0008](./F0007-S0008-shared-policy-consumers-and-prose-thinning.md) | Shared policy consumers and prose thinning | Consumer tooling implemented; prose thinning + constant removal role-owner-gated (deferred) |
+| [F0007-S0009](./F0007-S0009-governed-rollout-and-compatibility-pilot.md) | Governed rollout and compatibility pilot | CI adopted + pilot/rollback rehearsal; live pilot deferred |
 
 **Total Stories:** 9
-**Completed:** 0 / 9
+**Implemented:** 9 / 9 (all stories have landed deliverables). Rollout **HOLD** pending required role signoffs + a live governed product pilot. Human-gated remainders: prompt cutover (S0006), private-constant removal (S0007), 40% prose thinning (S0008), live product pilot + all-role review (S0009). See [rollout-report.md](./rollout-report.md).
 
 ## Phasing
 

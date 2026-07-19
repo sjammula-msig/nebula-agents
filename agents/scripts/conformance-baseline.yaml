@@ -1,0 +1,104 @@
+# Golden conformance baseline — independently-authored expected outcomes for the
+# published policy versions. NOT generated from the action specs; it is the separate
+# line of defense that catches a weakening edit even when the edited spec is internally
+# consistent. model_hash is a semantic fingerprint of the normalized bundle model.
+# Updating any expected outcome requires the same authorization as publishing a new
+# policy version: edit the value AND add an audit_log entry.
+#
+# Enforced by: agents/scripts/contract-conformance.py
+schema_version: 1
+
+audit_log:
+  - date: 2026-07-18
+    version: all
+    reviewer: architect (F0007-S0002; refreshed during the S0006/S0008 faithful feature cutover)
+    rationale: >-
+      Baseline mirrors the published bundles after the feature gate matrix was corrected to
+      the real Feature Evidence Contract (G3 code+security review, G6 candidate validation,
+      G7 architect KG reconciliation). Requirement flags mirror the *_EFFECTIVE_DATE cutovers.
+    affected_fixtures: [2026-05-19, 2026-05-25, 2026-06-01, 2026-07-05, 2026-07-11]
+
+fixtures:
+  - id: cutover-2026-05-19
+    version: "2026-05-19"
+    effective_from: "2026-05-19"
+    expected_verdict: pass
+    requirements:
+      security_scans_required: false
+      kg_reconciliation_required: false
+      kg_generated_regen_required: false
+      compile_projection_contract: false
+    feature_required_artifacts:
+      G0: [g0-assembly-plan-validation.md]
+      G3: [code-review-report.md]
+      G7: []
+      G8: [pm-closeout.md]
+    model_hash: "832d76ee28fbaeba9871662e7b3ca460f1d85505533547d0102afcece78a5d00"
+
+  - id: cutover-2026-05-25
+    version: "2026-05-25"
+    effective_from: "2026-05-25"
+    expected_verdict: pass
+    requirements:
+      security_scans_required: true
+      required_security_scan_classes: [dast, dependency, sast, secrets]
+      kg_reconciliation_required: false
+      kg_generated_regen_required: false
+      compile_projection_contract: false
+    feature_required_artifacts:
+      G0: [g0-assembly-plan-validation.md]
+      G3: [code-review-report.md, security-review-report.md]
+      G7: []
+      G8: [pm-closeout.md]
+    model_hash: "bf520e119909314bb15a69e235485b2f96636cfff087929db6e43a007ec32ece"
+
+  - id: cutover-2026-06-01
+    version: "2026-06-01"
+    effective_from: "2026-06-01"
+    expected_verdict: pass
+    requirements:
+      security_scans_required: true
+      required_security_scan_classes: [dast, dependency, sast, secrets]
+      kg_reconciliation_required: true
+      kg_generated_regen_required: false
+      compile_projection_contract: false
+    feature_required_artifacts:
+      G0: [g0-assembly-plan-validation.md]
+      G3: [code-review-report.md, security-review-report.md]
+      G7: [kg-reconciliation.md]
+      G8: [pm-closeout.md]
+    model_hash: "e9efdd3e381ebcdd954cfbbd32fcc2a55798e161056993b310ca323fe64a5842"
+
+  - id: cutover-2026-07-05
+    version: "2026-07-05"
+    effective_from: "2026-07-05"
+    expected_verdict: pass
+    requirements:
+      security_scans_required: true
+      required_security_scan_classes: [dast, dependency, sast, secrets]
+      kg_reconciliation_required: true
+      kg_generated_regen_required: true
+      compile_projection_contract: false
+    feature_required_artifacts:
+      G0: [g0-assembly-plan-validation.md]
+      G3: [code-review-report.md, security-review-report.md]
+      G7: [kg-reconciliation.md]
+      G8: [pm-closeout.md]
+    model_hash: "66cbad32d8a8eb9c316b1910316125c8c17ba06b8c1a8c24071219e592b1e5fa"
+
+  - id: cutover-2026-07-11
+    version: "2026-07-11"
+    effective_from: "2026-07-11"
+    expected_verdict: pass
+    requirements:
+      security_scans_required: true
+      required_security_scan_classes: [dast, dependency, sast, secrets]
+      kg_reconciliation_required: true
+      kg_generated_regen_required: true
+      compile_projection_contract: true
+    feature_required_artifacts:
+      G0: [g0-assembly-plan-validation.md]
+      G3: [code-review-report.md, security-review-report.md]
+      G7: [kg-reconciliation.md]
+      G8: [pm-closeout.md]
+    model_hash: "bd9a81993a9abe245c298a0dbbdb232327f8c67fa8d3e73195c3ad749f3c188c"
